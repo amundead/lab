@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label 'docker-agent-java'  // Use the Docker template label
+        label 'docker-jenkins-agent'  // Use the Docker template label
         
     }
 
