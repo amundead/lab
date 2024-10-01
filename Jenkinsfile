@@ -2,35 +2,35 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_OWNER = 'amundead'  // Your GitHub username or organization
-        GITHUB_REPOSITORY = 'test-repo'  // The repository where the package will be hosted
-        IMAGE_NAME = "ghcr.io/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"  // Full image name for GitHub Packages
-        TAG = 'v1.02'  // Tag for the Docker image
+        HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
+        HARBOR_PROJECT = 'nginx-hello-world'  // Harbor project where image will be pushed
+        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
+        TAG = 'v1.00'  // Tag for the Docker image
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the source code from your repository using credentials securely
-                git branch: 'main', url: "https://github.com/${GITHUB_OWNER}/${GITHUB_REPOSITORY}.git", credentialsId: 'github-credentials-id'
+                // Checkout the source code from your repository 
+                git branch: 'main', url: "https://github.com/amundead/test-repo.git"
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image using docker.build
-                    docker.build("${IMAGE_NAME}:${TAG}")
+                    // Build Docker image using docker.build with --no-cache option
+                    docker.build("${IMAGE_NAME_HARBOR}:${TAG}", "--no-cache .")
                 }
             }
         }
 
-        stage('Push Docker Image to GitHub Packages') {
+        stage('Tag and Push Docker Image to Harbor') {
             steps {
                 script {
-                    // Use docker.withRegistry for secure login and push
-                    docker.withRegistry('https://ghcr.io', 'github-credentials-id') {
-                        docker.image("${IMAGE_NAME}:${TAG}").push()
+                    // Use docker.withRegistry for secure login and push to Harbor
+                    docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-id') {
+                        docker.image("${IMAGE_NAME_HARBOR}:${TAG}").push()
                     }
                 }
             }
@@ -40,7 +40,7 @@ pipeline {
             steps {
                 script {
                     // Remove unused Docker images to free up space
-                    sh "docker rmi ${IMAGE_NAME}:${TAG}"
+                    sh "docker rmi ${IMAGE_NAME_HARBOR}:${TAG}"
                 }
             }
         }
