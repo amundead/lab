@@ -11,12 +11,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', usernameVariable: 'GITHUB_CREDENTIALS_USR', passwordVariable: 'GITHUB_CREDENTIALS_PSW')]) {
-                        // Checkout the source code from your repository using credentials securely
-                        git branch: 'main', url: "https://github.com/${GITHUB_OWNER}/${GITHUB_REPOSITORY}.git", credentialsId: 'github-credentials-id'
-                    }
-                }
+                // Checkout the source code from your repository using credentials securely
+                git branch: 'main', url: "https://github.com/${GITHUB_OWNER}/${GITHUB_REPOSITORY}.git", credentialsId: 'github-credentials-id'
             }
         }
 
@@ -32,12 +28,9 @@ pipeline {
         stage('Push Docker Image to GitHub Packages') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', usernameVariable: 'GITHUB_CREDENTIALS_USR', passwordVariable: 'GITHUB_CREDENTIALS_PSW')]) {
-                        // Log in to GitHub Packages using password stdin for security
-                        sh """
-                        echo ${GITHUB_CREDENTIALS_PSW} | docker login ghcr.io -u ${GITHUB_CREDENTIALS_USR} --password-stdin
-                        docker push ${IMAGE_NAME}:${TAG}
-                        """
+                    // Use docker.withRegistry for secure login and push
+                    docker.withRegistry('https://ghcr.io', 'github-credentials-id') {
+                        docker.image("${IMAGE_NAME}:${TAG}").push()
                     }
                 }
             }
