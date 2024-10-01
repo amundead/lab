@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_CREDENTIALS = credentials('github-credentials-id')  // Jenkins credential ID for GitHub credentials (username/token)
         GITHUB_OWNER = 'amundead'  // Your GitHub username or organization
         GITHUB_REPOSITORY = 'test-repo'  // The repository where the package will be hosted
         IMAGE_NAME = "ghcr.io/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"  // Full image name for GitHub Packages
@@ -12,8 +11,12 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the source code from your repository
-                git branch: 'main', url: "https://github.com/${GITHUB_OWNER}/${GITHUB_REPOSITORY}.git"
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', usernameVariable: 'GITHUB_CREDENTIALS_USR', passwordVariable: 'GITHUB_CREDENTIALS_PSW')]) {
+                        // Checkout the source code from your repository using credentials securely
+                        git branch: 'main', url: "https://github.com/${GITHUB_OWNER}/${GITHUB_REPOSITORY}.git", credentialsId: 'github-credentials-id'
+                    }
+                }
             }
         }
 
@@ -29,10 +32,13 @@ pipeline {
         stage('Push Docker Image to GitHub Packages') {
             steps {
                 script {
-                    // Log in to GitHub Packages using password stdin for security
-                    sh "echo ${GITHUB_CREDENTIALS_PSW} | docker login ghcr.io -u ${GITHUB_CREDENTIALS_USR} --password-stdin"
-                    // Push Docker image to GitHub Packages
-                    sh "docker push ${IMAGE_NAME}:${TAG}"
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', usernameVariable: 'GITHUB_CREDENTIALS_USR', passwordVariable: 'GITHUB_CREDENTIALS_PSW')]) {
+                        // Log in to GitHub Packages using password stdin for security
+                        sh """
+                        echo ${GITHUB_CREDENTIALS_PSW} | docker login ghcr.io -u ${GITHUB_CREDENTIALS_USR} --password-stdin
+                        docker push ${IMAGE_NAME}:${TAG}
+                        """
+                    }
                 }
             }
         }
