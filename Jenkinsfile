@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'nginx-hello-world'  // Harbor project where image will be pushed
+        HARBOR_PROJECT = 'nginxzlib'  // Harbor project where image will be pushed
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         TAG = 'v1.00'  // Tag for the Docker image
     }
