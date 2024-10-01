@@ -1,15 +1,12 @@
 pipeline {
-    agent {
-        label 'docker-jenkins-agent'  // Use the Docker template label
-        
-    }
+    agent any
 
     environment {
         GITHUB_CREDENTIALS = credentials('github-credentials-id')  // Jenkins credential ID for GitHub credentials (username/token)
         GITHUB_OWNER = 'amundead'  // Your GitHub username or organization
         GITHUB_REPOSITORY = 'test-repo'  // The repository where the package will be hosted
         IMAGE_NAME = "ghcr.io/${GITHUB_OWNER}/${GITHUB_REPOSITORY}"  // Full image name for GitHub Packages
-        TAG = 'v1.01'  // Tag for the Docker image
+        TAG = 'v1.02'  // Tag for the Docker image
     }
 
     stages {
