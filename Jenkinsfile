@@ -3,16 +3,16 @@ pipeline {
 
     environment {
         
-        DOCKERHUB_REPOSITORY = 'amundead/nginx-zlib'  // Docker Hub repository
+        DOCKERHUB_REPOSITORY = 'amundead/nginx-hello-world'  // Docker Hub repository
         IMAGE_NAME_DOCKERHUB = "${DOCKERHUB_REPOSITORY}"  // Full image name for Docker Hub
-        TAG = 'latest'  // Tag for the Docker image
+        TAG = 'v1.00'  // Tag for the Docker image
     }
 
     stages {
         stage('Checkout') {
             steps {
                 // Checkout the source code from your repository using credentials securely
-                git branch: 'main', url: "https://github.com/OWNWER/REPO_NAME.git", credentialsId: 'github-credentials-id'
+                git branch: 'main', url: "https://github.com/amundead/test-repo.git", credentialsId: 'github-credentials-id'
             }
         }
 
