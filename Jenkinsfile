@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'nginxzlib'  // Harbor project where image will be pushed
-        HARBOR_IMAGE = 'nginxzlib'
+        HARBOR_PROJECT = 'nginxhelloworld'  // Harbor project where image will be pushed
+        HARBOR_IMAGE = 'nginxhelloworld'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
-        TAG = 'v1.00'  // Tag for the Docker image
+        TAG = 'v1.01'  // Tag for the Docker image
     }
 
     stages {
