@@ -5,7 +5,7 @@ pipeline {
         
         DOCKERHUB_REPOSITORY = 'amundead/nginx-hello-world'  // Docker Hub repository
         IMAGE_NAME_DOCKERHUB = "${DOCKERHUB_REPOSITORY}"  // Full image name for Docker Hub
-        TAG = 'v1.03'  // Tag for the Docker image
+        TAG = 'v1.04'  // Tag for the Docker image
     }
 
     stages {
