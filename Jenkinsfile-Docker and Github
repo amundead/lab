@@ -49,7 +49,7 @@ pipeline {
                     sh "docker tag ${IMAGE_NAME_DOCKERHUB}:${TAG} ${IMAGE_NAME_GITHUB}:${TAG}"
 
                     // Authenticate to GitHub Packages and push
-                    docker.withRegistry('https://ghcr.io', 'github-packages-credentials-id') {
+                    docker.withRegistry('https://ghcr.io', 'github-credentials-id') {
                         docker.image("${IMAGE_NAME_GITHUB}:${TAG}").push()
                     }
                 }
