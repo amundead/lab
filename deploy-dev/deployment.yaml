@@ -46,5 +46,5 @@ spec:
     app: nginx
   ports:
     - protocol: TCP
-      port: 80       # The port exposed to the external world
-      targetPort: 8080 # The port that the container listens on
+      port: 8080       # The port exposed to the external world
+      targetPort: 80 # The port that the container listens on

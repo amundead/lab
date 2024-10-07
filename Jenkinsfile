@@ -6,6 +6,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')  // Jenkins credentials for Docker Hub
         DOCKER_IMAGE = "amundead/nginx-hello-world:v1.04"   // Docker image with tag
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
+        NAMES_SPACE= "dev-app-awam"  //Namespace for deployment in k8s
     }
     stages {
         stage('Clone Repository') {
@@ -48,7 +49,7 @@ pipeline {
         
         stage('Update Nginx Image in Kubernetes') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/nginx-deployment nginx=$DOCKER_IMAGE"  // Update the Nginx image in the Kubernetes deployment
+                sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/nginx-deployment nginx=$DOCKER_IMAGE --namespace=$NAMES_SPACE"  // Update the Nginx image in the Kubernetes deployment
             }
         }
     }
