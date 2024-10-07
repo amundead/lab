@@ -24,6 +24,13 @@ pipeline {
                 sh 'docker push $DOCKER_IMAGE'  // Push Docker image to Docker Hub
             }
         }
+
+        stage('Check Files') {
+            steps {
+                sh 'ls -R'  // List all files in the workspace to verify the structure
+            }
+        }
+
           stage('Update Deployment YAML') {
             steps {
                 // Replace the placeholder with the actual Docker image name
