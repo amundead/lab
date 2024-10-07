@@ -1,57 +1,55 @@
 pipeline {
     agent any
-
     environment {
-        
-        DOCKERHUB_REPOSITORY = 'amundead/nginx-hello-world'  // Docker Hub repository
-        IMAGE_NAME_DOCKERHUB = "${DOCKERHUB_REPOSITORY}"  // Full image name for Docker Hub
-        TAG = 'v1.04'  // Tag for the Docker image
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')  // Jenkins credentials for Docker Hub
+        DOCKER_IMAGE = "amundead/nginx-hello-world:v1.04"   // Docker image with tag
+        KUBECONFIG = "/sysuser/Jenkins/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
     }
-
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                // Checkout the source code from your repository using credentials securely
-                git branch: 'main', url: "https://github.com/amundead/test-repo.git", credentialsId: 'github-credentials-id'
+                git 'https://github.com/amundead/test-repo.git'  // Clone your GitHub repo
             }
         }
-
+        
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build Docker image using docker.build with --no-cache option
-                    docker.build("${IMAGE_NAME_DOCKERHUB}:${TAG}", "--no-cache .")
-                }
+                sh 'docker build -t $DOCKER_IMAGE .'  // Build Docker image
+            }
+        }
+        
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                sh 'docker push $DOCKER_IMAGE'  // Push Docker image to Docker Hub
+            }
+        }
+          stage('Update Deployment YAML') {
+            steps {
+                // Replace the placeholder with the actual Docker image name
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$DOCKER_IMAGE|g' deploy-dev/deployment.yaml"
             }
         }
 
-      
-        stage('Tag and Push Docker Image to Docker Hub') {
+        stage('Deploy Application') {
             steps {
-                script {
-                    
-                    // Use docker.withRegistry for secure login and push to Docker Hub
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials-id') {
-                        docker.image("${IMAGE_NAME_DOCKERHUB}:${TAG}").push()
-                    }
-                }
+                sh "kubectl --kubeconfig=$KUBECONFIG apply -f deploy-dev/deployment.yaml"  // Apply deployment.yaml from the deploy folder
             }
         }
-
-        stage('Clean up') {
+        
+        stage('Update Nginx Image in Kubernetes') {
             steps {
-                script {
-                    // Remove unused Docker images to free up space
-                    sh "docker rmi ${IMAGE_NAME_DOCKERHUB}:${TAG}"
-                }
+                sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/nginx-deployment nginx=$DOCKER_IMAGE"  // Update the Nginx image in the Kubernetes deployment
             }
         }
     }
-
+    
     post {
-        always {
-            // Clean up workspace after the pipeline
-            cleanWs()
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
         }
     }
 }
