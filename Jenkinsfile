@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'docker-jenkins-agent'  // Use the Docker template label
+    }
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')  // Jenkins credentials for Docker Hub
         DOCKER_IMAGE = "amundead/nginx-hello-world:v1.04"   // Docker image with tag
