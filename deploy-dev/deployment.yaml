@@ -24,14 +24,27 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-service
-  labels:
-    app: nginx
+  name: nginx-clusterip-service
+  namespace: dev-app-awam  # Specify the namespace
 spec:
-  type: LoadBalancer   # Specifies a LoadBalancer type service
-  ports:
-  - port: 80           # Port on the Nginx container
-    targetPort: 80     # Nginx listens on 80
-    nodePort: 8080     # The node port that will map to the load balancer
+  type: ClusterIP  # Set the service type to ClusterIP
   selector:
-    app: nginx         # Matches the app label of the Nginx pods
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80       # The port that will be exposed inside the cluster
+      targetPort: 80 # The port that the container listens on
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-loadbalancer-service
+  namespace: dev-app-awam  # Specify the namespace
+spec:
+  type: LoadBalancer  # Set the service type to LoadBalancer
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80       # The port exposed to the external world
+      targetPort: 8080 # The port that the container listens on
