@@ -27,13 +27,13 @@ pipeline {
           stage('Update Deployment YAML') {
             steps {
                 // Replace the placeholder with the actual Docker image name
-                sh "sed -i 's|{{DOCKER_IMAGE}}|$DOCKER_IMAGE|g' deploy-dev/deployment.yaml"
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$DOCKER_IMAGE|g' /workspace/CI-Testing Repo Nginx (Agent any)/deploy-dev/deployment.yaml"
             }
         }
 
         stage('Deploy Application') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG apply -f deploy-dev/deployment.yaml"  // Apply deployment.yaml from the deploy folder
+                sh "kubectl --kubeconfig=$KUBECONFIG apply -f /workspace/CI-Testing Repo Nginx (Agent any)/deploy-dev/deployment.yaml"  // Apply deployment.yaml from the deploy folder
             }
         }
         
