@@ -55,10 +55,10 @@ pipeline {
     
     post {
         success {
-            echo 'Deployment successful!'
+            echo 'Deployment to Kubernetes development cluster successful!'
         }
         failure {
-            echo 'Deployment failed.'
+            echo 'Deployment failed! haha'
         }
     }
 }
