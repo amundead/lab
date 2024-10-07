@@ -3,10 +3,9 @@ pipeline {
         label 'docker-jenkins-agent'  // Use the Docker template label
     }
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')  // Jenkins credentials for Docker Hub
-        DOCKER_IMAGE = "amundead/nginx-hello-world:v1.05"   // Docker image with tag
+        DOCKER_IMAGE = "amundead/nginx-hello-world:v1.06"   // Docker image with tag
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
-        NAMES_SPACE= "dev-app-awam"  //Namespace for deployment in k8s
+        NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
     }
     stages {
         stage('Clone Repository') {
@@ -23,8 +22,12 @@ pipeline {
         
         stage('Push Docker Image to Docker Hub') {
             steps {
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-                sh 'docker push $DOCKER_IMAGE'  // Push Docker image to Docker Hub
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials-id', passwordVariable: 'DOCKERHUB_CREDENTIALS_PSW', usernameVariable: 'DOCKERHUB_CREDENTIALS_USR')]) {
+                        sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                        sh 'docker push $DOCKER_IMAGE'  // Push Docker image to Docker Hub
+                    }
+                }
             }
         }
 
@@ -34,7 +37,7 @@ pipeline {
             }
         }
 
-          stage('Update Deployment YAML') {
+        stage('Update Deployment YAML') {
             steps {
                 // Replace the placeholder with the actual Docker image name
                 sh "sed -i 's|{{DOCKER_IMAGE}}|$DOCKER_IMAGE|g' /home/jenkins/agent/workspace/CI-testing-repo-nginx/deploy-dev/deployment.yaml"
