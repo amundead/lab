@@ -5,7 +5,7 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')  // Jenkins credentials for Docker Hub
         DOCKER_IMAGE = "amundead/nginx-hello-world:v1.04"   // Docker image with tag
-        KUBECONFIG = "/sysuser/Jenkins/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
+        KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
     }
     stages {
         stage('Clone Repository') {
