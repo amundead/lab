@@ -1,9 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello World</title>
+    <script>
+        // Function to retrieve the hostname and IP address using a fetch call
+        async function getHostInfo() {
+            const response = await fetch('/host-info');
+            const data = await response.json();
+            document.getElementById('host-node').innerText = data.hostname;
+            document.getElementById('host-ip').innerText = data.ip;
+        }
+    </script>
 </head>
-<body>
-    <p style="color:red;font-size:50px;">Hellow Word v1.07 @ K8S Dev MINDEF</p>
+<body onload="getHostInfo()">
+    <h1>Hello World! @ K8S-MINDEF DEV</h1>
+    <p>This page is served from:</p>
+    <ul>
+        <li>Node: <span id="host-node"></span></li>
+        <li>IP: <span id="host-ip"></span></li>
+    </ul>
 </body>
 </html>

@@ -1,14 +1,21 @@
-# Use the official Nginx image as the base image
+# Use the official NGINX image
 FROM nginx:alpine
 
-# Remove the default Nginx configuration file
-RUN rm /usr/share/nginx/html/index.html
+# Install bash and curl (needed for the host-info script)
+RUN apk add --no-cache bash curl
 
-# Copy your custom index.html file to the Nginx web root
-COPY index.html /usr/share/nginx/html/
+# Copy custom index.html to NGINX default location
+COPY index.html /usr/share/nginx/html/index.html
+
+# Copy custom nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Add host-info script
+COPY host-info.sh /usr/local/bin/host-info.sh
+RUN chmod +x /usr/local/bin/host-info.sh
+
+# Start NGINX and serve host info at /host-info
+CMD ["/bin/sh", "-c", "nginx & while true; do /usr/local/bin/host-info.sh | nc -l -p 8080; done"]
 
 # Expose port 80
 EXPOSE 80
-
-# Start Nginx when the container starts
-CMD ["nginx", "-g", "daemon off;"]
