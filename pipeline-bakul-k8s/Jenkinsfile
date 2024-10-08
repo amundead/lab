@@ -9,7 +9,7 @@ pipeline {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
         HARBOR_PROJECT = 'nginxhelloworld'  // Harbor project where image will be pushed
         HARBOR_IMAGE = 'nginxhelloworld'
-        TAG = 'v1.06'  // Tag for the Docker image
+        TAG = 'v1.07'  // Tag for the Docker image
         NAME_DEPLOY = 'nginx-deployment'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
