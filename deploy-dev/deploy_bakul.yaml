@@ -32,7 +32,7 @@ spec:
     app: {{NAME_DEPLOY}}
   ports:
     - protocol: TCP
-      port: 80       # The port that will be exposed inside the cluster
+      #port: 80       # The port that will be exposed inside the cluster
       targetPort: 80 # The port that the container listens on
 ---
 apiVersion: v1
