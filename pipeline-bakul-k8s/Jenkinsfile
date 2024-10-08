@@ -65,7 +65,7 @@ pipeline {
         
         stage('Update Image in Kubernetes') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY nginx=$IMAGE_NAME_HARBOR:$TAG --namespace=$NAMES_SPACE"  // Update the Nginx image in the Kubernetes deployment
+                sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY $NAME_DEPLOY=$IMAGE_NAME_HARBOR:$TAG --namespace=$NAMES_SPACE"  // Update the Nginx image in the Kubernetes deployment
             }
         }
 
