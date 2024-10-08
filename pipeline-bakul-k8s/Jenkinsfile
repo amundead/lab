@@ -7,10 +7,10 @@ pipeline {
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'nginxhelloworld'  // Harbor project where image will be pushed
-        HARBOR_IMAGE = 'nginxhelloworld'
-        TAG = 'v1.11'  // Tag for the Docker image
-        NAME_DEPLOY = 'nginx-deployment'
+        HARBOR_PROJECT = 'testing-app'  // Harbor project where image will be pushed
+        HARBOR_IMAGE = 'node-helloworld'
+        TAG = 'v1.00'  // Tag for the Docker image
+        NAME_DEPLOY = 'node-helloworld'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG certs
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
@@ -51,19 +51,19 @@ pipeline {
         stage('Update Deployment YAML') {
             steps {
                 // Replace the placeholder with the actual Docker image name
-                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR:$TAG|g' /home/jenkins/agent/workspace/CI-testing-repo-nginx/deploy-dev/deploy_bakul.yaml"
-                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' /home/jenkins/agent/workspace/CI-testing-repo-nginx/deploy-dev/deploy_bakul.yaml"
-                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' /home/jenkins/agent/workspace/CI-testing-repo-nginx/deploy-dev/deploy_bakul.yaml"
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR:$TAG|g' /home/jenkins/agent/workspace/CI-testing-hello-world/deploy-dev/deploy_bakul.yaml"
+                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' /home/jenkins/agent/workspace/CI-testing-hello-world/deploy-dev/deploy_bakul.yaml"
+                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' /home/jenkins/agent/workspace/CCI-testing-hello-world/deploy-dev/deploy_bakul.yaml"
             }
         }
 
         stage('Deploy Application') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG apply -f /home/jenkins/agent/workspace/CI-testing-repo-nginx/deploy-dev/deploy_bakul.yaml"  // Apply deployment.yaml from the deploy folder
+                sh "kubectl --kubeconfig=$KUBECONFIG apply -f /home/jenkins/agent/workspace/CI-testing-hello-world/deploy-dev/deploy_bakul.yaml"  // Apply deployment.yaml from the deploy folder
             }
         }
         
-        stage('Update Nginx Image in Kubernetes') {
+        stage('Update Image in Kubernetes') {
             steps {
                 sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY nginx=$IMAGE_NAME_HARBOR:$TAG --namespace=$NAMES_SPACE"  // Update the Nginx image in the Kubernetes deployment
             }
@@ -71,7 +71,7 @@ pipeline {
 
         stage('Show Deployment Services') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE nginx-loadbalancer-service"  // Get the LoadBalancer IP of the nginx-deployment service. Please change the load balancer services name
+                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $NAME_DEPLOY"  // Get the LoadBalancer IP of the nginx-deployment service. Please change the load balancer services name
             }
         }
     }
