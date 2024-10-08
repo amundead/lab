@@ -4,14 +4,14 @@ FROM node:14-alpine
 # Set the working directory in the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json files
-COPY package*.json ./
+# Copy package.json and package-lock.json from the app folder
+COPY app/package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
-COPY . .
+# Copy the rest of the application code from the app folder
+COPY app .
 
 # Expose port 8080
 EXPOSE 8080
