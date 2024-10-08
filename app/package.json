@@ -1,13 +1,18 @@
 {
     "name": "host-info-app",
     "version": "1.0.0",
-    "description": "A simple Node.js app to display host info",
+    "description": "A simple Node.js app to display host information in a Kubernetes cluster",
     "main": "app.js",
     "scripts": {
-      "start": "node app.js"
+      "start": "node app.js",
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "engines": {
+      "node": ">=16.0.0"
     },
     "dependencies": {
-      "express": "^4.17.1"
-    }
+      "express": "^4.18.2"
+    },
+    "license": "MIT"
   }
   

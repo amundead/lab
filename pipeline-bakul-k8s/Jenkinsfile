@@ -9,7 +9,7 @@ pipeline {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
         HARBOR_PROJECT = 'testing-app'  // Harbor project where image will be pushed
         HARBOR_IMAGE = 'node-helloworld'
-        TAG = 'v1.00'  // Tag for the Docker image
+        TAG = 'v1.01'  // Tag for the Docker image
         NAME_DEPLOY = 'node-helloworld'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG certs
