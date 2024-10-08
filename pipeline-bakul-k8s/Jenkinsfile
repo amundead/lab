@@ -1,7 +1,9 @@
 //Jenkins scripts CI/CD customize by Amir@Mindef 2024 v1.00
 
 pipeline {
-    agent any
+    agent {
+        label 'docker-jenkins-agent'  // Use the Docker template label
+    }
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
