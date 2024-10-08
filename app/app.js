@@ -2,7 +2,7 @@ const express = require('express');
 const os = require('os');
 
 const app = express();
-const port = 8080;
+const port = 80;
 
 // Serve the static HTML file
 app.get('/', (req, res) => {
