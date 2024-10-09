@@ -1,8 +1,8 @@
 //Jenkins scripts CI/CD customize by Amir@Mindef 2024 v2.00
 
 pipeline {
-    agent 
-    
+    agent any
+
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
         HARBOR_PROJECT = 'testing-app'  // Harbor project where image will be pushed
