@@ -1,3 +1,5 @@
+//Pipeline by Amir@Mindef v1.00
+
 pipeline {
     agent any
 
@@ -7,6 +9,7 @@ pipeline {
         HARBOR_IMAGE = 'nginxhelloworld'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
         TAG = 'v1.01'  // Tag for the Docker image
+        DOCKERFILE_LOCATION = './Dockerfile'     // Dockerfile in root location './tot/lab-01/Dockerfile'
     }
 
     stages {
@@ -16,12 +19,25 @@ pipeline {
                 git branch: 'main', url: "https://github.com/amundead/test-repo.git"
             }
         }
+        
+        stage('Check Dockerfile Location') {
+            steps {
+                script {
+                    // Check if the Dockerfile exists in the root location
+                    if (fileExists(DOCKERFILE_LOCATION)) {
+                        echo "Dockerfile found at ${DOCKERFILE_LOCATION}"
+                    } else {
+                        error "Dockerfile not found at ${DOCKERFILE_LOCATION}"
+                    }
+                }
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
                 script {
                     // Build Docker image using docker.build with --no-cache option
-                    docker.build("${IMAGE_NAME_HARBOR}:${TAG}", "--no-cache .")
+                    docker.build("${IMAGE_NAME_HARBOR}:${TAG}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
                 }
             }
         }
