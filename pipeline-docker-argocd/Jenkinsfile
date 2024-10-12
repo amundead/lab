@@ -4,7 +4,7 @@ pipeline {
     }
     environment {
         DOCKER_IMAGE = "amundead/nginx-hello-world"   // Docker image with tag
-        DOCKER_TAG = "v1.07"
+        DOCKER_TAG = "v1.08"
         DOCKER_FULL_IMAGE = "${DOCKER_IMAGE}:${DOCKER_TAG}"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
     }
@@ -36,7 +36,7 @@ pipeline {
             steps {
                 script {
                     // Update manifest with new image tag
-                    sh "sed -i 's|{{DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
+                    sh "sed -i 's|{{NEW_DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
 
                     // Commit and push changes to Git
                     dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
