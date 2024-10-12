@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{NAME_DEPLOY}}
+  namespace: {{NAMES_SPACE}} 
+  labels:
+    app: {{NAME_DEPLOY}}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: {{NAME_DEPLOY}}
+  template:
+    metadata:
+      labels:
+        app: {{NAME_DEPLOY}}
+    spec:
+      containers:
+      - name: {{NAME_DEPLOY}}
+        image: {{DOCKER_IMAGE}}   # Pulls the latest node-hello-world image
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80   # node-hello-world listens on port 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{NAME_DEPLOY}}-service
+  namespace: {{NAMES_SPACE}}  # Specify the namespace
+spec:
+  type: ClusterIP  # Set the service type to ClusterIP
+  selector:
+    app: {{NAME_DEPLOY}}
+  ports:
+    - protocol: TCP
+      port: 8181       # The port that will be exposed inside the cluster
+      targetPort: 80 # The port that the container listens on
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+  #name: {{NAME_DEPLOY}}-loadbalancer
+  #namespace: {{NAMES_SPACE}}  # Specify the namespace
+#spec:
+  #type: LoadBalancer  # Set the service type to LoadBalancer
+  #selector:
+    #app: {{NAME_DEPLOY}}
+  #ports:
+    #- protocol: TCP
+      #port: 8080       # The port exposed to the external world
+      #targetPort: 80 # The port that the container listens on
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{NAME_DEPLOY}}-ingress
+  namespace: {{NAMES_SPACE}}  # Use the same namespace as your service
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: hello.local.my  # The hostname to be used
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{NAME_DEPLOY}}-service  # The name of the service created earlier
+                port:
+                  number: 80  # The port exposed by the service
