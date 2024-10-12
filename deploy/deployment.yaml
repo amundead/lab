@@ -54,7 +54,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: hello-world-ingress
-  namespace: {{NAMES_SPACE}}  # Use the same namespace as your service
+  namespace: dev-app-awam  # Use the same namespace as your service
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
