@@ -37,7 +37,7 @@ pipeline {
                 script {
                     // Update manifest with new image tag
                     sh "sed -i 's|{{NEW_DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
-
+                    sh 'ls -R /home/jenkins/workspace/CI-CD-hellowordtomyhome/'
                     // Commit and push changes to Git
                     dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
                         withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
@@ -45,7 +45,7 @@ pipeline {
                             sh "git config user.name '$GITHUB_USERNAME'"
                             sh "git config user.email '${GITHUB_USERNAME}@yahoo.com'"  // Adjust email as needed
                             sh 'git status'
-                            sh "git add deploy/deployment.yaml"
+                            sh "git add ./deploy/deployment.yaml"
                             sh "git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'"
 
                             sh "git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main"
