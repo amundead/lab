@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{NAME_DEPLOY}}
-  namespace: {{NAMES_SPACE}} 
+  namespace: dev-app-awam
   labels:
     app: {{NAME_DEPLOY}}
 spec:
@@ -26,7 +26,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{NAME_DEPLOY}}-service
-  namespace: {{NAMES_SPACE}}  # Specify the namespace
+  namespace: dev-app-awam  # Specify the namespace
 spec:
   type: ClusterIP  # Set the service type to ClusterIP
   selector:
