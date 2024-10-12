@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{NAME_DEPLOY}}
+  name: hello-world
   namespace: dev-app-awam
   labels:
-    app: {{NAME_DEPLOY}}
+    app: hello-world
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: {{NAME_DEPLOY}}
+      app: hello-world
   template:
     metadata:
       labels:
-        app: {{NAME_DEPLOY}}
+        app: hello-world
     spec:
       containers:
-      - name: {{NAME_DEPLOY}}
+      - name: hello-world
         image: {{DOCKER_IMAGE}}   # Pulls the latest node-hello-world image
         imagePullPolicy: Always
         ports:
@@ -25,12 +25,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{NAME_DEPLOY}}-service
+  name: hello-world-service
   namespace: dev-app-awam  # Specify the namespace
 spec:
   type: ClusterIP  # Set the service type to ClusterIP
   selector:
-    app: {{NAME_DEPLOY}}
+    app: hello-world
   ports:
     - protocol: TCP
       port: 8181       # The port that will be exposed inside the cluster
@@ -53,7 +53,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{NAME_DEPLOY}}-ingress
+  name: hello-world-ingress
   namespace: {{NAMES_SPACE}}  # Use the same namespace as your service
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
@@ -66,6 +66,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{NAME_DEPLOY}}-service  # The name of the service created earlier
+                name: hello-world-service  # The name of the service created earlier
                 port:
                   number: 80  # The port exposed by the service
