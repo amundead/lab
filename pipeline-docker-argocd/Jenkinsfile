@@ -44,6 +44,7 @@ pipeline {
                             
                             sh "git config user.name '$GITHUB_USERNAME'"
                             sh "git config user.email '${GITHUB_USERNAME}@yahoo.com'"  // Adjust email as needed
+                            sh 'git status'
                             sh "git add deployment.yaml"
                             sh "git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'"
 
