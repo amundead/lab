@@ -33,27 +33,28 @@ pipeline {
         }
 
         stage('Update Kubernetes Manifest') {
-            steps {
-                script {
-                    // Update manifest with new image tag
-                    sh "sed -i 's|{{DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
+    steps {
+        script {
+            // Update manifest with new image tag
+            sh "sed -i 's|{{DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
 
-                    // Commit and push changes to Git
-                    dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
-                        withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-                            sh """
-                            git config user.name "$GITHUB_USERNAME"
-                            git config user.email "$GITHUB_USERNAME@yahoo.com"  // Adjust email as needed
-                            git add deployment.yaml
-                            git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'
-                            echo $GITHUB_PASSWORD | git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main
-                            """
-                        }
-                    }
+            // Commit and push changes to Git
+            dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
+                withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    // Separate commands for clarity and avoid issues
+                    sh "git config user.name '$GITHUB_USERNAME'"
+                    sh "git config user.email '${GITHUB_USERNAME}@yahoo.com'"  // Adjust email as needed
+                    sh "git add deployment.yaml"
+                    sh "git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'"
+
+                    // Use https URL with username and password for pushing
+                    sh "git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main"
                 }
             }
         }
     }
+}
+
 
     post {
         success {
