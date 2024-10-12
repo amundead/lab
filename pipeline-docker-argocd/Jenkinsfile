@@ -43,7 +43,7 @@ pipeline {
                         withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                             sh """
                             git config user.name "$GITHUB_USERNAME"
-                            git config user.email "$GITHUB_USERNAME@mycompany.com"  // Adjust email as needed
+                            git config user.email "$GITHUB_USERNAME@yahoo.com"  // Adjust email as needed
                             git add deployment.yaml
                             git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'
                             echo $GITHUB_PASSWORD | git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main
