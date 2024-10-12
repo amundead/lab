@@ -53,7 +53,7 @@ pipeline {
                         sh """
                         git config user.name "jenkins"
                         git config user.email "jenkins@mycompany.com"
-                        git add k8s-deployment.yaml
+                        git add deployment.yaml
                         git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'
                         git push origin main
                         """
