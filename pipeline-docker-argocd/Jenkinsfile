@@ -33,8 +33,8 @@ pipeline {
         }
 
         stage('Update Kubernetes Manifest') {
-    steps {
-        script {
+            steps {
+                script {
             // Update manifest with new image tag
             sh "sed -i 's|{{DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
 
