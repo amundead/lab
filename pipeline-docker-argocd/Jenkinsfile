@@ -3,7 +3,8 @@ pipeline {
         label 'docker-jenkins-agent'  // Use the Docker template label
     }
     environment {
-        DOCKER_IMAGE = "amundead/nginx-hello-world:v1.07"   // Docker image with tag
+        DOCKER_IMAGE = "amundead/nginx-hello-world"   // Docker image with tag
+        DOCKER_TAG = "v1.07"
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
     }
