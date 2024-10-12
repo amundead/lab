@@ -51,8 +51,8 @@ pipeline {
                     // Commit and push changes to Git
                     dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') { // Change to the directory containing the deployment.yaml
                         sh """
-                        git config user.name "jenkins"
-                        git config user.email "jenkins@mycompany.com"
+                        git config user.name "amundead"
+                        git config user.email "amundeadz@yahoo.com"
                         git add deployment.yaml
                         git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'
                         git push origin main
