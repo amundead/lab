@@ -1,20 +1,20 @@
 pipeline {
     agent {
-        label 'docker-jenkins-agent'  // Use the Docker template label
+        label 'docker-jenkins-agent'
     }
     environment {
-        DOCKER_IMAGE = "amundead/nginx-hello-world"   // Docker image without tag
-        DOCKER_TAG = "v1.11"
+        DOCKER_IMAGE = "amundead/nginx-hello-world"
+        DOCKER_TAG = "v1.10"  // Update this tag as needed
         DOCKER_FULL_IMAGE = "${DOCKER_IMAGE}:${DOCKER_TAG}"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
     }
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
+                git branch: 'main', url: "https://github.com/amundead/test-repo.git"
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $DOCKER_FULL_IMAGE .'  // Build Docker image
@@ -32,47 +32,40 @@ pipeline {
             }
         }
 
-        stage('Get Docker Image Digest') {
+        stage('Get Docker Digest') {
             steps {
                 script {
-                    // Get Docker image digest after the push
-                    def digest = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' $DOCKER_FULL_IMAGE", returnStdout: true).trim()
-                    env.DOCKER_DIGEST = digest.split("@")[1]  // Extract only the digest part
+                    // Get the image digest
+                    DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' $DOCKER_FULL_IMAGE | cut -d '@' -f 2", returnStdout: true).trim()
+                    echo "Docker Digest: ${DOCKER_DIGEST}"
                 }
             }
         }
 
-        stage('Update Kubernetes Manifest with Digest') {
+        stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    // Update deployment manifest with the new image digest
-                    sh "sed -i 's|{{NEW_DOCKER_DIGEST}}|$DOCKER_DIGEST|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
-                    
-                    // List the directory to ensure files are visible
+                    // Replace the image field with the new image and digest
+                    sh """
+                    sed -i 's|image:.*|image: $DOCKER_IMAGE@sha256:$DOCKER_DIGEST|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml
+                    """
+
+                    // List the directory to verify the changes
                     sh 'ls -R /home/jenkins/workspace/CI-CD-hellowordtomyhome/'
-                    
+
                     // Commit and push changes to Git
                     dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
                         withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                             
-                            // Configure Git user
                             sh "git config user.name '$GITHUB_USERNAME'"
                             sh "git config user.email '${GITHUB_USERNAME}@yahoo.com'"
                             
-                            // Check git status to see if there are any changes
-                            sh 'git status'
-                            
-                            // Check if there are any changes using git diff
                             def changes = sh(script: "git diff --name-only", returnStdout: true).trim()
                             if (changes) {
-                                // If there are changes, add the file and commit
                                 sh "git add deployment.yaml"
-                                sh "git commit -m 'Update image to ${DOCKER_IMAGE}@${DOCKER_DIGEST}'"
-                                
-                                // Push changes to GitHub
+                                sh "git commit -m 'Update image to ${DOCKER_IMAGE}@sha256:${DOCKER_DIGEST}'"
                                 sh "git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main"
                             } else {
-                                // No changes to commit
                                 echo "No changes detected in deployment.yaml, skipping commit."
                             }
                         }
@@ -84,10 +77,10 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment to Kubernetes development cluster successful! ArgoCD will automatically sync.'
+            echo 'Deployment to Kubernetes development cluster successful!'
         }
         failure {
-            echo 'Deployment failed! haha'
+            echo 'Deployment failed!'
         }
     }
 }
