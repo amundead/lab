@@ -70,6 +70,7 @@ pipeline {
                 }
             }
         }
+    }  // Close stages block
 
     post {
         success {
@@ -78,5 +79,5 @@ pipeline {
         failure {
             echo 'Deployment failed! haha'
         }
-    }
-}
+    }  // Close post block
+}  // Close pipeline block
