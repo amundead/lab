@@ -79,7 +79,7 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment to Kubernetes development via ArgoCD cluster successful!'
+            echo 'Deployment to Kubernetes via ArgoCD cluster is successful.!'
         }
         failure {
             echo 'Deployment failed!'
