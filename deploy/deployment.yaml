@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hello-world
-        image: amundead/nginx-hello-world@sha256:c553d5c57135bd9ce808c2a9902613cc23da08c0510e5fa15988e90b01fff220
+        image: amundead/nginx-hello-world@sha256:546c9560444935e587a62646a53f8fd3a41af89793913f1a832747e091b89e98
         imagePullPolicy: Always
         ports:
         - containerPort: 80   # node-hello-world listens on port 80
