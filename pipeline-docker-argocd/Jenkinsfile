@@ -63,7 +63,7 @@ pipeline {
                             def changes = sh(script: "git diff --name-only", returnStdout: true).trim()
                             if (changes) {
                                 sh "git add deployment.yaml"
-                                sh "git commit -m 'Update image to ${DOCKER_IMAGE}@sha256:${DOCKER_DIGEST}'"
+                                sh "git commit -m 'Update image to ${DOCKER_IMAGE}@${DOCKER_DIGEST}'"
                                 sh "git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main"
                             } else {
                                 echo "No changes detected in deployment.yaml, skipping commit."
