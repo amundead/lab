@@ -16,7 +16,7 @@ spec:
         app: {{NAME_DEPLOY}}
     spec:
       containers:
-      - name: {{NAME_DEPLOY}}
+      - name: node-helloworld-01
         image: {{DOCKER_IMAGE}}   # Pulls the latest node-hello-world image
         imagePullPolicy: Always
         ports:
