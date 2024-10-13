@@ -33,23 +33,37 @@ pipeline {
         }
 
         stage('Update Kubernetes Manifest') {
-            steps {
-                script {
-                    // Update manifest with new image tag
-                    sh "sed -i 's|{{NEW_DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
-                    sh 'ls -R /home/jenkins/workspace/CI-CD-hellowordtomyhome/'
-                    // Commit and push changes to Git
-                    dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
-                        withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-                            
-                            sh "git config user.name '$GITHUB_USERNAME'"
-                            sh "git config user.email '${GITHUB_USERNAME}@yahoo.com'"  // Adjust email as needed
-                            sh 'git status'
+        steps {
+            script {
+                // Update manifest with new image tag
+                sh "sed -i 's|{{NEW_DOCKER_TAG}}|$DOCKER_TAG|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml"
+                
+                // List the directory to ensure files are visible
+                sh 'ls -R /home/jenkins/workspace/CI-CD-hellowordtomyhome/'
+                
+                // Commit and push changes to Git
+                dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                        
+                        // Configure Git user
+                        sh "git config user.name '$GITHUB_USERNAME'"
+                        sh "git config user.email '${GITHUB_USERNAME}@yahoo.com'"
+                        
+                        // Check git status to see if there are any changes
+                        sh 'git status'
+                        
+                        // Check if there are any changes using git diff
+                        def changes = sh(script: "git diff --name-only", returnStdout: true).trim()
+                        if (changes) {
+                            // If there are changes, add the file and commit
                             sh "git add deployment.yaml"
                             sh "git commit -m 'Update image to ${DOCKER_FULL_IMAGE}'"
-
-                            sh "git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main"
                             
+                            // Push changes to GitHub
+                            sh "git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main"
+                        } else {
+                            // No changes to commit
+                            echo "No changes detected in deployment.yaml, skipping commit."
                         }
                     }
                 }
