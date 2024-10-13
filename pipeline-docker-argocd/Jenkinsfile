@@ -1,3 +1,5 @@
+// Script by Amir@MINDEF 2024 v1.00 JenkinsCI --> Docker -> ArgoCD --> K8S
+
 pipeline {
     agent {
         label 'docker-jenkins-agent'
