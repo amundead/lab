@@ -4,7 +4,7 @@ pipeline {
     }
     environment {
         DOCKER_IMAGE = "amundead/nginx-hello-world"
-        DOCKER_TAG = "v1.10"  // Update this tag as needed
+        DOCKER_TAG = "v1.11"  // Update this tag as needed
         DOCKER_FULL_IMAGE = "${DOCKER_IMAGE}:${DOCKER_TAG}"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
     }
