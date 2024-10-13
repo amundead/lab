@@ -97,7 +97,7 @@ pipeline {
 
         stage('Show Deployment Services') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $NAME_DEPLOY-loadbalancer"  // Get the LoadBalancer IP of the nginx-deployment service. Please change the load balancer services name
+                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE"  // Get the LoadBalancer IP of the nginx-deployment service. Please change the load balancer services name
             }
         }
     }
