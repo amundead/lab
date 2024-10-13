@@ -1,4 +1,4 @@
-//Jenkins scripts CI/CD customize by Amir@Mindef 2024 v2.00
+//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.00
 
 pipeline {
     agent any
