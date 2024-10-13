@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hello-world
-  namespace: dev-app-awamd
+  namespace: dev-app-awam
   labels:
     app: hello-world
 spec:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hello-world
-        image: amundead/nginx-hello-world@sha256:546c9560444935e587a62646a53f8fd3a41af89793913f1a832747e091b89e98
+        image: amundead/nginx-hello-world@sha256:5b544f7444c1e78aea550bc7e30e6edbe1bafc69207880c31a0d0d39fdb17115
         imagePullPolicy: Always
         ports:
         - containerPort: 80   # node-hello-world listens on port 80
@@ -26,7 +26,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: hello-world-service
-  namespace: dev-app-awamd  # Specify the namespace
+  namespace: dev-app-awam
 spec:
   type: ClusterIP  # Set the service type to ClusterIP
   selector:
@@ -40,7 +40,7 @@ spec:
 #kind: Service
 #metadata:
   #name: {{NAME_DEPLOY}}-loadbalancer
-  #namespace: {{NAMES_SPACE}}  # Specify the namespace
+  #namespace: dev-app-awam
 #spec:
   #type: LoadBalancer  # Set the service type to LoadBalancer
   #selector:
@@ -54,7 +54,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: hello-world-ingress
-  namespace: dev-app-awam  # Use the same namespace as your service
+  namespace: dev-app-awam
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
