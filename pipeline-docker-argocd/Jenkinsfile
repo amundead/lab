@@ -45,9 +45,10 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    // Replace the image field with the new image and digest
+                    // Replace the namespace and image
                     sh """
                     sed -i 's|image:.*|image: '"$DOCKER_IMAGE"'@'"$DOCKER_DIGEST"'|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml
+                    sed -i 's|namespace:.*|namespace: ${NAMES_SPACE}|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml
                     """
 
                     // List the directory to verify the changes
