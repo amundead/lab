@@ -1,3 +1,4 @@
+// Pipeline script Jenkins to ArgoCD CI/CD by Amir@Mindef v2.00
 pipeline {
     agent {
         label 'docker-jenkins-agent'
