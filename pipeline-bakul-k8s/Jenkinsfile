@@ -1,4 +1,4 @@
-//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.00
+//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.01
 
 pipeline {
     agent any
@@ -9,9 +9,10 @@ pipeline {
         HARBOR_IMAGE = 'node-helloworld'
         TAG = 'v1.01'  // Tag for the Docker image
         NAME_DEPLOY = 'node-helloworld'
+        PATH_YAML = "/home/jenkins/workspace/CICD-Node-Helloworld-Dev/deploy-dev/deploy_bakul.yaml"
+        NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
-        NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         DOCKERFILE_LOCATION = './Dockerfile'    // Dockerfile in root location  './tot/lab-01/Dockerfile'
     }
     stages {
@@ -64,15 +65,15 @@ pipeline {
         stage('Update Deployment YAML') {
             steps {
                 // Replace the placeholder with the actual Docker image name
-                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR:$TAG|g' /home/jenkins/workspace/CICD-Node-Helloworld-Dev/deploy-dev/deploy_bakul.yaml"
-                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' /home/jenkins/workspace/CICD-Node-Helloworld-Dev/deploy-dev/deploy_bakul.yaml"
-                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' /home/jenkins/workspace/CICD-Node-Helloworld-Dev/deploy-dev/deploy_bakul.yaml"
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR:$TAG|g' ${PATH_YAML}"
+                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
             }
         }
 
         stage('Deploy Application') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG apply -f /home/jenkins/workspace/CICD-Node-Helloworld-Dev/deploy-dev/deploy_bakul.yaml"  // Apply deployment.yaml from the deploy folder
+                sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML}"  // Apply deployment.yaml from the deploy folder
             }
         }
         
@@ -97,14 +98,14 @@ pipeline {
 
         stage('Show Deployment Services') {
             steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE"  // Get the LoadBalancer IP of the nginx-deployment service. Please change the load balancer services name
+                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $NAME_DEPLOY-loadbalancer"  // Get the LoadBalancer IP of service.
             }
         }
     }
     
     post {
         success {
-            echo 'Deployment to Kubernetes development cluster successful!'
+            echo 'Deployment to Kubernetes cluster successful!'
         }
         failure {
             echo 'Deployment failed! haha'
