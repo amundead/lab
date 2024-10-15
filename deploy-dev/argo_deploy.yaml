@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{NAME_DEPLOY}}
-  namespace: {{NAMES_SPACE}} 
+  name: hello-world
+  namespace: dev-app-awam
   labels:
-    app: {{NAME_DEPLOY}}
+    app: hello-world
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: {{NAME_DEPLOY}}
+      app: hello-world
   template:
     metadata:
       labels:
-        app: {{NAME_DEPLOY}}
+        app: hello-world
     spec:
       containers:
-      - name: {{NAME_DEPLOY}}
-        image: {{DOCKER_IMAGE}}   # Pulls the latest node-hello-world image
+      - name: hello-world
+        image: amundead/nginx-hello-world@sha256:89541acc22a71382778b8a2882d0dce7b89872cb571f4783dcfa0e07c5ddc0ca
         imagePullPolicy: Always
         ports:
         - containerPort: 80   # node-hello-world listens on port 80
@@ -25,12 +25,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{NAME_DEPLOY}}-service
-  namespace: {{NAMES_SPACE}}  # Specify the namespace
+  name: hello-world-service
+  namespace: dev-app-awam
 spec:
   type: ClusterIP  # Set the service type to ClusterIP
   selector:
-    app: {{NAME_DEPLOY}}
+    app: hello-world
   ports:
     - protocol: TCP
       port: 8181       # The port that will be exposed inside the cluster
@@ -40,7 +40,7 @@ spec:
 #kind: Service
 #metadata:
   #name: {{NAME_DEPLOY}}-loadbalancer
-  #namespace: {{NAMES_SPACE}}  # Specify the namespace
+  #namespace: dev-app-awam
 #spec:
   #type: LoadBalancer  # Set the service type to LoadBalancer
   #selector:
@@ -53,8 +53,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{NAME_DEPLOY}}-ingress
-  namespace: {{NAMES_SPACE}}  # Use the same namespace as your service
+  name: hello-world-ingress
+  namespace: dev-app-awam
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
@@ -66,6 +66,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{NAME_DEPLOY}}-service  # The name of the service created earlier
+                name: hello-world-service  # The name of the service created earlier
                 port:
                   number: 80  # The port exposed by the service
