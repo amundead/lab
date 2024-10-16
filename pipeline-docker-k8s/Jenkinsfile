@@ -1,5 +1,4 @@
 // CI-CD Docker to K8s by Amir@Midnef v2.00
-
 pipeline {
     agent any
 
