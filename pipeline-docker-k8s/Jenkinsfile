@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "amundead/nginx-hello-world:v1.07"   // Docker image with tag
+        DOCKER_IMAGE = "amundead/nginx-hello-world:v1.11"   // Docker image with tag
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         PATH_YAML = "deploy/deployment.yaml"
@@ -34,7 +34,7 @@ pipeline {
             steps {
                 script {
                     // Build Docker image using docker.build with --no-cache option
-                    docker.build("${DDOCKER_IMAGE}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
+                    docker.build("${DOCKER_IMAGE}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
                 }
             }
         }
