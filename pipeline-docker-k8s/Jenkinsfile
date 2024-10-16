@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "amundead/nginx-hello-world:v1.11"   // Docker image with tag
-        KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
+        KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         PATH_YAML = "deploy/deployment.yaml"
         NAME_DEPLOY = "hello-world"
