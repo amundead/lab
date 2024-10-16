@@ -9,7 +9,7 @@ pipeline {
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         DOCKERFILE_LOCATION = './tot/lab-01/Dockerfile'  // Dockerfile location
-        PATH_YAML = '/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/argo_deploy.yaml'
+        PATH_YAML = 'deploy/argo_deploy.yaml'
     }
     stages {
         stage('Clone Repository') {
