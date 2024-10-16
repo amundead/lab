@@ -1,0 +1,130 @@
+//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.04
+pipeline {
+    agent any
+
+    environment {
+        HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
+        HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Harbor project where image will be pushed
+        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
+        NAME_DEPLOY = 'node-helloworld'
+        PATH_YAML = "deploy-dev/deploy_bakul.yaml"
+        NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
+        KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
+        DOCKERFILE_LOCATION = './Dockerfile'  // Dockerfile location
+    }
+
+    stages {
+        stage('User Input: Build or Use Existing Image') {
+            steps {
+                script {
+                    def userInput = input(id: 'userInput', message: 'Build and push new image or use existing tag?', parameters: [
+                        choice(name: 'Proceed', choices: ['Build', 'Use Existing'], description: 'Choose whether to build a new image or use the existing image tag')
+                    ])
+
+                    if (userInput == 'Use Existing') {
+                        currentBuild.displayName = "Using Existing Image"
+                        echo "Skipping image build and using existing tag."
+                    } else {
+                        currentBuild.displayName = "Building New Image"
+                        echo "Building new image..."
+                    }
+                }
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
+            }
+        }
+
+        stage('Check Dockerfile Location') {
+            when {
+                expression { return currentBuild.displayName == "Building New Image" }
+            }
+            steps {
+                script {
+                    if (fileExists(DOCKERFILE_LOCATION)) {
+                        echo "Dockerfile found at ${DOCKERFILE_LOCATION}"
+                    } else {
+                        error "Dockerfile not found at ${DOCKERFILE_LOCATION}"
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                expression { return currentBuild.displayName == "Building New Image" }
+            }
+            steps {
+                script {
+                    docker.build("${IMAGE_NAME_HARBOR}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
+                }
+            }
+        }
+
+        stage('Tag and Push Docker Image to Harbor') {
+            when {
+                expression { return currentBuild.displayName == "Building New Image" }
+            }
+            steps {
+                script {
+                    docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
+                        docker.image("${IMAGE_NAME_HARBOR}").push()
+                    }
+                }
+            }
+        }
+
+        stage('Update Deployment YAML') {
+            steps {
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR|g' ${PATH_YAML}"
+                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
+            }
+        }
+      
+        stage('Update or Deploy to Kubernetes') {
+            steps {
+                script {
+                    echo "Checking if deployment '$NAME_DEPLOY' exists in the namespace '$NAMES_SPACE'..."
+                    def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
+
+                    if (deploymentExists) {
+                        def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
+
+                        if (currentImage != "$IMAGE_NAME_HARBOR") {
+                            echo "New image detected: $IMAGE_NAME_HARBOR. Updating the deployment..."
+                            sh """
+                                CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
+                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE
+                            """
+                        } else {
+                            echo "Same image detected. Performing rollback..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                        }
+                    } else {
+                        echo "Deployment does not exist. Applying the deployment YAML..."
+                        sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
+                    }
+                }
+            }
+        }
+
+        stage('Show Deployment Services') {
+            steps {
+                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $NAME_DEPLOY-loadbalancer"  // Get the LoadBalancer IP of service.
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Deployment to Kubernetes cluster successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
+        }
+    }
+}
