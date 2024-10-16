@@ -81,23 +81,28 @@ pipeline {
 
                         if (currentImage != "$IMAGE_NAME_HARBOR") {
                             // Automatically get the container name and set the image
+                            echo "New image detected: $IMAGE_NAME_HARBOR. Updating the deployment..."
                             sh """
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
                                 kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE
                             """
+                            echo "Deployment updated with new image: $IMAGE_NAME_HARBOR."
                         } else {
                             // If the image is the same, perform a rollout restart
                             echo "Same image detected. Performing rollout restart..."
                             sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                            echo "Rollout restart triggered for deployment: $NAME_DEPLOY."
                         }
                     } else {
                         // If the deployment does not exist, apply the deployment YAML
                         echo "Deployment does not exist. Applying the deployment YAML..."
                         sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
+                        echo "Deployment applied: $NAME_DEPLOY."
                     }
                 }
             }
         }
+
 
         stage('Show Deployment Services') {
             steps {
