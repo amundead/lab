@@ -1,4 +1,4 @@
-//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.02
+//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.03
 
 pipeline {
     agent any
@@ -7,7 +7,7 @@ pipeline {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
         HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Harbor project where image will be pushed
         NAME_DEPLOY = 'node-helloworld'
-        PATH_YAML = "/home/jenkins/workspace/CICD-Node-Helloworld-Dev/deploy-dev/deploy_bakul.yaml"
+        PATH_YAML = "deploy-dev/deploy_bakul.yaml"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
