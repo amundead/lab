@@ -1,5 +1,4 @@
 //Jenkins scripts CI/CD by Amir@Mindef 2024 v2.04
-
 pipeline {
     agent any
 
