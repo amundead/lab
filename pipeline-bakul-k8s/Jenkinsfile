@@ -1,4 +1,4 @@
-//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.01
+//Jenkins scripts CI/CD by Amir@Mindef 2024 v2.02
 
 pipeline {
     agent any
@@ -68,13 +68,7 @@ pipeline {
                 sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
             }
         }
-
-        stage('Deploy Application') {
-            steps {
-                sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML}"  // Apply deployment.yaml from the deploy folder
-            }
-        }
-        
+      
         stage('Update or Restart Deployment in Kubernetes') {
             steps {
                 script {
