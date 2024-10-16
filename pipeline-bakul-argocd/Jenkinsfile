@@ -8,7 +8,7 @@ pipeline {
         HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Harbor project where image will be pushed
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
-        DOCKERFILE_LOCATION = './tot/lab-01/Dockerfile'  // Dockerfile location
+        DOCKERFILE_LOCATION = './Dockerfile'  // Dockerfile location
         PATH_YAML = 'deploy/argo_deploy.yaml'
     }
     stages {

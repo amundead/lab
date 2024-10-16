@@ -1,71 +1,51 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello-world
-  namespace: dev-app-awam
+  name: {{NAME_DEPLOY}}
+  namespace: {{NAMES_SPACE}} 
   labels:
-    app: hello-world
+    app: {{NAME_DEPLOY}}
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: hello-world
+      app: {{NAME_DEPLOY}}
   template:
     metadata:
       labels:
-        app: hello-world
+        app: {{NAME_DEPLOY}}
     spec:
       containers:
-      - name: hello-world
-        image: amundead/nginx-hello-world@sha256:89541acc22a71382778b8a2882d0dce7b89872cb571f4783dcfa0e07c5ddc0ca
+      - name: helloworld-01
+        image: {{DOCKER_IMAGE}}   # Pulls the latest node-hello-world image
         imagePullPolicy: Always
         ports:
         - containerPort: 80   # node-hello-world listens on port 80
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: hello-world-service
-  namespace: dev-app-awam
-spec:
-  type: ClusterIP  # Set the service type to ClusterIP
-  selector:
-    app: hello-world
-  ports:
-    - protocol: TCP
-      port: 8181       # The port that will be exposed inside the cluster
-      targetPort: 80 # The port that the container listens on
-#---
 #apiVersion: v1
 #kind: Service
 #metadata:
-  #name: {{NAME_DEPLOY}}-loadbalancer
-  #namespace: dev-app-awam
+  #name: {{NAME_DEPLOY}}-service
+  #namespace: {{NAMES_SPACE}}  # Specify the namespace
 #spec:
-  #type: LoadBalancer  # Set the service type to LoadBalancer
+  #type: ClusterIP  # Set the service type to ClusterIP
   #selector:
     #app: {{NAME_DEPLOY}}
   #ports:
     #- protocol: TCP
-      #port: 8080       # The port exposed to the external world
+      #port: 80       # The port that will be exposed inside the cluster
       #targetPort: 80 # The port that the container listens on
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: v1
+kind: Service
 metadata:
-  name: hello-world-ingress
-  namespace: dev-app-awam
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: {{NAME_DEPLOY}}-loadbalancer
+  namespace: {{NAMES_SPACE}}  # Specify the namespace
 spec:
-  rules:
-    - host: hello.local.my  # The hostname to be used
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: hello-world-service  # The name of the service created earlier
-                port:
-                  number: 80  # The port exposed by the service
+  type: LoadBalancer  # Set the service type to LoadBalancer
+  selector:
+    app: {{NAME_DEPLOY}}
+  ports:
+    - protocol: TCP
+      port: 8282       # The port exposed to the external world
+      targetPort: 80 # The port that the container listens on

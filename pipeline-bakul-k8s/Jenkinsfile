@@ -19,7 +19,6 @@ pipeline {
                 git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
             }
         }
-        
 
         stage('Check Dockerfile Location') {
             steps {
@@ -104,7 +103,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Show Deployment Services') {
             steps {

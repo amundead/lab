@@ -1,11 +1,11 @@
 pipeline {
     agent any
-    
+
     environment {
         DOCKER_IMAGE = "amundead/nginx-hello-world:v1.07"   // Docker image with tag
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k3s.yaml"  // Path to your KUBECONFIG
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
-        PATH_YAML = "deploy-dev/deploy_bakul.yaml"
+        PATH_YAML = "deploy/deployment.yaml"
         NAME_DEPLOY = "hello-world"
         DOCKERFILE_LOCATION = './Dockerfile'    // Dockerfile in root location  './tot/lab-01/Dockerfile'
 
@@ -16,7 +16,6 @@ pipeline {
                 git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
             }
         }
-
 
         stage('Check Dockerfile Location') {
             steps {
@@ -60,7 +59,7 @@ pipeline {
         stage('Update Deployment YAML') {
             steps {
                 // Replace the placeholder with the actual Docker image name
-                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR|g' ${PATH_YAML}"
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$DOCKER_IMAGE|g' ${PATH_YAML}"
                 sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
                 sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
             }
@@ -101,7 +100,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Show Deployment Services') {
             steps {
