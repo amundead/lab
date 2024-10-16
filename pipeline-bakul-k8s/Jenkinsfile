@@ -5,7 +5,7 @@ pipeline {
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'testing-app/node-helloworld:v1.02'  // Harbor project where image will be pushed
+        HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Harbor project where image will be pushed
         NAME_DEPLOY = 'node-helloworld'
         PATH_YAML = "deploy-dev/deploy_bakul.yaml"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
