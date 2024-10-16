@@ -76,15 +76,27 @@ pipeline {
                     def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
 
                     if (deploymentExists) {
-                        echo "Deployment exists. Performing rollout restart to apply updates..."
-                        sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                        // Check the currently deployed image tag
+                        def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
+
+                        if (currentImage != "$IMAGE_NAME_HARBOR") {
+                            // If the current image is different, update with kubectl set image
+                            echo "New image detected: $IMAGE_NAME_HARBOR. Updating the deployment..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY $NAME_DEPLOY=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE"
+                        } else {
+                            // If the image is the same, perform a rollout restart
+                            echo "Same image detected. Performing rollout restart..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                        }
                     } else {
-                        echo "Deployment does not exist. Applying deployment YAML..."
+                        // If the deployment does not exist, apply the deployment YAML
+                        echo "Deployment does not exist. Applying the deployment YAML..."
                         sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                     }
                 }
             }
         }
+
 
         stage('Show Deployment Services') {
             steps {
