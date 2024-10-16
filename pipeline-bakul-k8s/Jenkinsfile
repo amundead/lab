@@ -72,22 +72,27 @@ pipeline {
         stage('Update or Restart Deployment in Kubernetes') {
             steps {
                 script {
-                    // Check if the deployment already exists in the Kubernetes namespace
-                    def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
+                // Check if the deployment already exists in the Kubernetes namespace
+                def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
 
-                    if (deploymentExists) {
-                        // If the deployment exists, trigger a set image
-                        echo "Deployment exists. Performing rollout restart..."
-                        sh "kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY $NAME_DEPLOY=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE"
-
-                    } else {
-                        // If the deployment does not exist, set the image
-                        echo "Deployment does not exist. Setting image for the deployment..."
-                        sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
-                    }
+                if (deploymentExists) {
+                    // If the deployment exists, trigger a set image
+                    echo "Deployment exists. Updating image..."
+                    
+                    // Automatically get the container name and set the image
+                    sh """
+                        CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
+                        kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE
+                    """
+                } else {
+                    // If the deployment does not exist, apply the deployment YAML
+                    echo "Deployment does not exist. Applying deployment YAML..."
+                    sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                 }
             }
         }
+    }
+
 
         stage('Show Deployment Services') {
             steps {
