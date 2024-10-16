@@ -77,14 +77,14 @@ pipeline {
                         echo "Deployment '$NAME_DEPLOY' exists in the namespace '$NAMES_SPACE'."
                         def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
 
-                        if (currentImage != "$IMAGE_NAME_HARBOR") {
+                        if (currentImage != "$DOCKER_IMAGE") {
                             // Automatically get the container name and set the image
-                            echo "New image detected: $IMAGE_NAME_HARBOR. Updating the deployment..."
+                            echo "New image detected: $DOCKER_IMAGE. Updating the deployment..."
                             sh """
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
-                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE
+                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$DOCKER_IMAGE --namespace=$NAMES_SPACE
                             """
-                            echo "Deployment updated with new image: $IMAGE_NAME_HARBOR."
+                            echo "Deployment updated with new image: $DOCKER_IMAGE."
                         } else {
                             // If the image is the same, perform a rollout restart
                             echo "Same image detected. Performing rollout restart..."
