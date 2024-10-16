@@ -6,10 +6,10 @@ pipeline {
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
         HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Harbor project where image will be pushed
+        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         NAME_DEPLOY = 'node-helloworld'
         PATH_YAML = "deploy-dev/deploy_bakul.yaml"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
-        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
         DOCKERFILE_LOCATION = './Dockerfile'    // Dockerfile in root location  './tot/lab-01/Dockerfile'
     }

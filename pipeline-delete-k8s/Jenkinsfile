@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    environment {
+        NAME_DEPLOY = 'node-helloworld'
+        NAME_CLUSTER = 'node-helloworld-cluster'  // Cluster name
+        NAME_LB = 'node-helloworld-loadbalancer'  // LoadBalancer name
+        PATH_YAML = "deploy-dev/deploy_bakul.yaml"
+        NAMES_SPACE = 'dev-app-awam'  // Namespace for deployment in k8s
+        KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
+    }
+
+    stages {
+        stage('Delete Deployment, Cluster, and LoadBalancer') {
+            steps {
+                script {
+                    // Set KUBECONFIG environment variable
+                    sh "export KUBECONFIG=${KUBECONFIG}"
+
+                    // Deleting the deployment using YAML manifest
+                    sh """
+                    kubectl delete -f ${PATH_YAML} --namespace=${NAMES_SPACE}
+                    """
+
+                    // Deleting the service associated with the deployment
+                    sh """
+                    kubectl delete service ${NAME_DEPLOY} --namespace=${NAMES_SPACE}
+                    """
+
+                    // Deleting the cluster (if it's managed separately)
+                    sh """
+                    kubectl delete statefulset ${NAME_CLUSTER} --namespace=${NAMES_SPACE}
+                    """
+
+                    // Deleting the LoadBalancer service (if applicable)
+                    sh """
+                    kubectl delete service ${NAME_LB} --namespace=${NAMES_SPACE}
+                    """
+                }
+            }
+        }
+    }
+}
