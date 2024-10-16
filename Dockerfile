@@ -1,14 +1,20 @@
-# Use the official Nginx image as the base image
-FROM nginx:alpine
+# Use Node.js base image
+FROM node:lts-alpine
 
-# Remove the default Nginx configuration file
-RUN rm /usr/share/nginx/html/index.html
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-# Copy your custom index.html file to the Nginx web root
-COPY index.html /usr/share/nginx/html/
+# Copy package.json and package-lock.json from the app folder
+COPY app/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application code from the app folder
+COPY app .
 
 # Expose port 80
 EXPOSE 80
 
-# Start Nginx when the container starts
-CMD ["nginx", "-g", "daemon off;"]
+# Start the Node.js app
+CMD ["node", "app.js"]

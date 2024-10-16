@@ -1,16 +1,15 @@
-// Pipeline script Jenkins to ArgoCD to K8S CI/CD by Amir@Mindef v2.00
+// Pipeline script Jenkins to ArgoCD to K8S CI/CD by Amir@Mindef v2.01
 pipeline {
     agent {
         label 'docker-jenkins-agent'
     }
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'testing-app'  // Harbor project where image will be pushed
-        HARBOR_IMAGE = 'node-helloworld'  // Image name
-        TAG = 'v1.01'  // Tag for the Docker image
-        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}:${TAG}"  // Full image name for Harbor
+        HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Harbor project where image will be pushed
+        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         DOCKERFILE_LOCATION = './tot/lab-01/Dockerfile'  // Dockerfile location
+        PATH_YAML = '/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/argo_deploy.yaml'
     }
     stages {
         stage('Clone Repository') {
@@ -19,13 +18,26 @@ pipeline {
             }
         }
 
+        stage('Check Dockerfile Location') {
+            steps {
+                script {
+                    // Check if the Dockerfile exists in the root location
+                    if (fileExists(DOCKERFILE_LOCATION)) {
+                        echo "Dockerfile found at ${DOCKERFILE_LOCATION}"
+                    } else {
+                        error "Dockerfile not found at ${DOCKERFILE_LOCATION}"
+                    }
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh 'docker build --no-cache -t $IMAGE_NAME_HARBOR -f $DOCKERFILE_LOCATION .'  // Build Docker image without using cache
             }
         }
-
-        stage('Push Docker Image to Harbor') {
+          
+          stage('Push Docker Image to Harbor') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
@@ -51,15 +63,15 @@ pipeline {
                 script {
                     // Replace the namespace and image in deployment.yaml
                     sh """
-                    sed -i 's|image:.*|image: '"$IMAGE_NAME_HARBOR"'@'"$DOCKER_DIGEST"'|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml
-                    sed -i 's|namespace:.*|namespace: ${NAMES_SPACE}|g' /home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy/deployment.yaml
+                    sed -i 's|image:.*|image: '"$IMAGE_NAME_HARBOR"'@'"$DOCKER_DIGEST"'|g' "$PATH_YAML"
+                    sed -i 's|namespace:.*|namespace: ${NAMES_SPACE}|g' "$PATH_YAML"
                     """
 
                     // List the directory to verify the changes
-                    sh 'ls -R /home/jenkins/workspace/CI-CD-hellowordtomyhome/'
+                    sh 'ls -R'
 
                     // Commit and push changes to Git
-                    dir('/home/jenkins/workspace/CI-CD-hellowordtomyhome/deploy') {
+                    dir("${dirname(PATH_YAML)}") {
                         withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                             
                             sh 'git config user.name "$GITHUB_USERNAME"'
@@ -67,11 +79,11 @@ pipeline {
                             
                             def changes = sh(script: "git diff --name-only", returnStdout: true).trim()
                             if (changes) {
-                                sh 'git add deployment.yaml'
+                                sh 'git add $(basename '"$PATH_YAML"')'
                                 sh 'git commit -m "Update image to $IMAGE_NAME_HARBOR@$DOCKER_DIGEST"'
                                 sh 'git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/amundead/test-repo.git HEAD:main'
                             } else {
-                                echo "No changes detected in deployment.yaml, skipping commit."
+                                echo "No changes detected, skipping commit."
                             }
                         }
                     }
@@ -82,7 +94,7 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment to Kubernetes cluster via ArgoCD is successful!'
+            echo 'Deployment to the Kubernetes cluster via ArgoCD was successful!'
         }
         failure {
             echo 'Deployment failed!'
