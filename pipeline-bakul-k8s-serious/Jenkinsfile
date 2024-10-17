@@ -101,10 +101,11 @@ pipeline {
                                 kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE
                             """
                         } else {
-                            // Handle rollback or skip if no history exists
+                            echo "Same image detected. Checking for rollback possibility..."
                             def historyStatus = sh(script: "kubectl --kubeconfig=$KUBECONFIG rollout history deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true)
+                            
                             if (historyStatus == 0) {
-                                echo "Same image detected. Performing rollback..."
+                                echo "Rollout history found. Performing rollback..."
                                 sh "kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
                             } else {
                                 echo "No rollout history found, skipping rollback."
