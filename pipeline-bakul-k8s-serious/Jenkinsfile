@@ -1,4 +1,4 @@
-// Jenkins scripts CI/CD by Amir@Mindef 2024 v2.07
+// Jenkins scripts CI/CD by Amir@Mindef 2024 v2.08
 pipeline {
     agent any
 
@@ -25,13 +25,14 @@ pipeline {
                     if (params.BUILD_OPTION == 'Build') {
                         echo "You have chosen to build the image."
                         // Check if NEW_IMAGE_NAME is provided
-                        if (params.NEW_IMAGE_NAME.trim() == '') {
+                        def newImageNameTrimmed = params.NEW_IMAGE_NAME.trim()
+                        if (newImageNameTrimmed == '') {
                             error "No new image name provided for building. Please specify a full image name with tag."
                         } else {
-                            echo "Building Docker image: ${params.NEW_IMAGE_NAME}"
+                            echo "Building Docker image: ${newImageNameTrimmed}"
                         }
                     } else {
-                        echo "Skipping build. The provided image will be deployed: ${params.CUSTOM_IMAGE}"
+                        echo "Skipping build. The provided image will be deployed: ${params.CUSTOM_IMAGE.trim()}"
                     }
                 }
             }
@@ -67,8 +68,9 @@ pipeline {
             }
             steps {
                 script {
-                    echo "Building Docker image: ${params.NEW_IMAGE_NAME}"
-                    docker.build("${params.NEW_IMAGE_NAME}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
+                    def newImageNameTrimmed = params.NEW_IMAGE_NAME.trim()
+                    echo "Building Docker image: ${newImageNameTrimmed}"
+                    docker.build("${newImageNameTrimmed}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
                 }
             }
         }
@@ -79,8 +81,9 @@ pipeline {
             }
             steps {
                 script {
+                    def newImageNameTrimmed = params.NEW_IMAGE_NAME.trim()
                     docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
-                        docker.image("${params.NEW_IMAGE_NAME}").push()
+                        docker.image("${newImageNameTrimmed}").push()
                     }
                 }
             }
@@ -91,7 +94,7 @@ pipeline {
                 expression { params.BUILD_OPTION == 'Build' }
             }
             steps {
-                sh "sed -i 's|{{DOCKER_IMAGE}}|${params.NEW_IMAGE_NAME}|g' ${PATH_YAML}"
+                sh "sed -i 's|{{DOCKER_IMAGE}}|${params.NEW_IMAGE_NAME.trim()}|g' ${PATH_YAML}"
                 sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
                 sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
             }
@@ -100,9 +103,9 @@ pipeline {
         stage('Deploy Image to Kubernetes') {
             steps {
                 script {
-                    def imageNameToDeploy = params.BUILD_OPTION == 'Build' ? params.NEW_IMAGE_NAME : params.CUSTOM_IMAGE
+                    def imageNameToDeploy = params.BUILD_OPTION == 'Build' ? params.NEW_IMAGE_NAME.trim() : params.CUSTOM_IMAGE.trim()
 
-                    if (params.BUILD_OPTION == 'Skip Build' && imageNameToDeploy.trim() == '') {
+                    if (params.BUILD_OPTION == 'Skip Build' && imageNameToDeploy == '') {
                         error "No custom image provided for deployment. Please specify an image in the CUSTOM_IMAGE parameter."
                     }
 
