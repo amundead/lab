@@ -1,10 +1,8 @@
-// Jenkins scripts CI/CD by Amir@Mindef 2024 v2.08
 pipeline {
     agent any
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        DEFAULT_IMAGE_NAME = "${HARBOR_REGISTRY}/testing-app/node-helloworld:v1.01"  // Default image to be used in case user chooses build
         NAME_DEPLOY = 'node-helloworld'
         PATH_YAML = "deploy-dev/deploy_bakul.yaml"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
@@ -13,26 +11,18 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'BUILD_OPTION', choices: ['Build', 'Skip Build'], description: 'Choose whether to build a new image or skip the build')
-        string(name: 'CUSTOM_IMAGE', defaultValue: '', description: 'Enter the full image name (including tag) if skipping build (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1.01 or amundead/test/test:v1.02)')
-        string(name: 'NEW_IMAGE_NAME', defaultValue: '', description: 'Enter the new full image name (including tag) if building (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1.02 or amundead/test/test:v1.03)')
+        choice(name: 'BUILD_OPTION', choices: ['Build (Same Tag Rollout)', 'Build (Set New Tag)', 'Build (Deploy New YAML)', 'Skip Build'], description: 'Choose the build option')
+        string(name: 'FULL_IMAGE_NAME', defaultValue: '', description: 'Enter the full image name (including tag) for the build or for skipping build (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1:01)')
     }
 
     stages {
         stage('Input Decision') {
             steps {
                 script {
-                    if (params.BUILD_OPTION == 'Build') {
+                    if (params.BUILD_OPTION.contains('Build')) {
                         echo "You have chosen to build the image."
-                        // Check if NEW_IMAGE_NAME is provided
-                        def newImageNameTrimmed = params.NEW_IMAGE_NAME.trim()
-                        if (newImageNameTrimmed == '') {
-                            error "No new image name provided for building. Please specify a full image name with tag."
-                        } else {
-                            echo "Building Docker image: ${newImageNameTrimmed}"
-                        }
                     } else {
-                        echo "Skipping build. The provided image will be deployed: ${params.CUSTOM_IMAGE.trim()}"
+                        echo "Skipping build. The provided image will be deployed: ${params.FULL_IMAGE_NAME}"
                     }
                 }
             }
@@ -40,7 +30,7 @@ pipeline {
 
         stage('Clone Repository') {
             when {
-                expression { params.BUILD_OPTION == 'Build' }
+                expression { params.BUILD_OPTION.contains('Build') }
             }
             steps {
                 git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
@@ -49,7 +39,7 @@ pipeline {
 
         stage('Check Dockerfile Location') {
             when {
-                expression { params.BUILD_OPTION == 'Build' }
+                expression { params.BUILD_OPTION.contains('Build') }
             }
             steps {
                 script {
@@ -64,49 +54,37 @@ pipeline {
 
         stage('Build Docker Image') {
             when {
-                expression { params.BUILD_OPTION == 'Build' }
+                expression { params.BUILD_OPTION.contains('Build') }
             }
             steps {
                 script {
-                    def newImageNameTrimmed = params.NEW_IMAGE_NAME.trim()
-                    echo "Building Docker image: ${newImageNameTrimmed}"
-                    docker.build("${newImageNameTrimmed}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
+                    def imageNameToBuild = params.FULL_IMAGE_NAME
+                    docker.build("${imageNameToBuild}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
                 }
             }
         }
 
         stage('Tag and Push Docker Image to Harbor') {
             when {
-                expression { params.BUILD_OPTION == 'Build' }
+                expression { params.BUILD_OPTION.contains('Build') }
             }
             steps {
                 script {
-                    def newImageNameTrimmed = params.NEW_IMAGE_NAME.trim()
+                    def imageNameToPush = params.FULL_IMAGE_NAME
                     docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
-                        docker.image("${newImageNameTrimmed}").push()
+                        docker.image("${imageNameToPush}").push()
                     }
                 }
-            }
-        }
-
-        stage('Update Deployment YAML') {
-            when {
-                expression { params.BUILD_OPTION == 'Build' }
-            }
-            steps {
-                sh "sed -i 's|{{DOCKER_IMAGE}}|${params.NEW_IMAGE_NAME.trim()}|g' ${PATH_YAML}"
-                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
-                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
             }
         }
 
         stage('Deploy Image to Kubernetes') {
             steps {
                 script {
-                    def imageNameToDeploy = params.BUILD_OPTION == 'Build' ? params.NEW_IMAGE_NAME.trim() : params.CUSTOM_IMAGE.trim()
+                    def imageNameToDeploy = params.FULL_IMAGE_NAME
 
                     if (params.BUILD_OPTION == 'Skip Build' && imageNameToDeploy == '') {
-                        error "No custom image provided for deployment. Please specify an image in the CUSTOM_IMAGE parameter."
+                        error "No image provided for deployment. Please specify an image in the FULL_IMAGE_NAME parameter."
                     }
 
                     // Check if the deployment already exists
@@ -116,15 +94,18 @@ pipeline {
                     if (deploymentExists) {
                         def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
 
-                        if (currentImage != imageNameToDeploy) {
-                            echo "New image detected: $imageNameToDeploy. Updating the deployment..."
+                        if (params.BUILD_OPTION == 'Build (Same Tag Rollout)') {
+                            echo "Same image tag detected. Performing rollout restart..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                        } else if (params.BUILD_OPTION == 'Build (Set New Tag)' && currentImage != imageNameToDeploy) {
+                            echo "New image tag detected: $imageNameToDeploy. Updating the deployment..."
                             sh """
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
                                 kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
                             """
                         } else {
-                            echo "Same image detected. Performing rollout restart..."
-                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                            echo "Performing new YAML deployment..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                         }
                     } else {
                         echo "Deployment does not exist. Applying the deployment YAML..."
