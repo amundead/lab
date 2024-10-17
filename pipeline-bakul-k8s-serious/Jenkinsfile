@@ -102,13 +102,13 @@ pipeline {
                             """
                         } else {
                             echo "Same image detected. Checking for rollback possibility..."
-                            def historyStatus = sh(script: "kubectl --kubeconfig=$KUBECONFIG rollout history deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true)
-                            
-                            if (historyStatus == 0) {
-                                echo "Rollout history found. Performing rollback..."
+                            def revisionCount = sh(script: "kubectl --kubeconfig=$KUBECONFIG rollout history deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE | wc -l", returnStdout: true).trim().toInteger()
+
+                            if (revisionCount > 2) {
+                                echo "Multiple revisions found. Performing rollback..."
                                 sh "kubectl --kubeconfig=$KUBECONFIG rollout undo deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
                             } else {
-                                echo "No rollout history found, skipping rollback."
+                                echo "Only one revision found, skipping rollback."
                             }
                         }
                     } else {
