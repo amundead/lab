@@ -1,84 +1,123 @@
+// Jenkins scripts CI/CD by Amir@Mindef 2024 v2.05
 pipeline {
     agent any
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'testing-app/node-helloworld'  // Harbor project
-        DEFAULT_IMAGE_TAG = 'v1.01'  // Default image tag to use if user input is skipped
+        HARBOR_PROJECT = 'testing-app/node-helloworld:v1.01'  // Default image to be used in case user chooses build
+        IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}"  // Full image name for Harbor
         NAME_DEPLOY = 'node-helloworld'
         PATH_YAML = "deploy-dev/deploy_bakul.yaml"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
-        DOCKERFILE_LOCATION = './tot/lab-01/Dockerfile'  // Dockerfile location
+        DOCKERFILE_LOCATION = './Dockerfile'    // Dockerfile in root location
+    }
+
+    parameters {
+        choice(name: 'BUILD_OPTION', choices: ['Build', 'Skip Build'], description: 'Choose whether to build a new image or skip the build')
+        string(name: 'CUSTOM_IMAGE', defaultValue: '', description: 'Enter the full image name (including tag) if skipping build (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1:01)')
     }
 
     stages {
-        stage('Clone Repository') {
-            steps {
-                git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
-            }
-        }
-
-        stage('Get User Input for Image Tag') {
+        stage('Input Decision') {
             steps {
                 script {
-                    // Prompt user for the image tag (if they want to change the default)
-                    def userInput = input(
-                        id: 'UserInput', message: 'Deploy with custom image tag?', parameters: [
-                            string(defaultValue: DEFAULT_IMAGE_TAG, description: 'Enter the new image tag', name: 'IMAGE_TAG')
-                        ]
-                    )
-
-                    // Construct the full image name with user input
-                    env.IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}:${userInput}"
-                    echo "User selected image: ${env.IMAGE_NAME_HARBOR}"
-                }
-            }
-        }
-
-        stage('Build or Use Existing Image') {
-            steps {
-                script {
-                    def userChoice = input(
-                        id: 'BuildOrDeploy', message: 'Choose an action', parameters: [
-                            choice(choices: ['Build new image', 'Deploy existing image'], description: 'Build new Docker image or use an existing one?', name: 'ACTION')
-                        ]
-                    )
-
-                    if (userChoice == 'Build new image') {
-                        echo "Building and pushing new Docker image..."
-                        docker.build("${env.IMAGE_NAME_HARBOR}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
-                        docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
-                            docker.image("${env.IMAGE_NAME_HARBOR}").push()
-                        }
+                    if (params.BUILD_OPTION == 'Build') {
+                        echo "You have chosen to build the image."
                     } else {
-                        echo "Skipping build. Using existing image: ${env.IMAGE_NAME_HARBOR}"
+                        echo "Skipping build. The provided image will be deployed: ${params.CUSTOM_IMAGE}"
                     }
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Clone Repository') {
+            when {
+                expression { params.BUILD_OPTION == 'Build' }
+            }
+            steps {
+                git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
+            }
+        }
+
+        stage('Check Dockerfile Location') {
+            when {
+                expression { params.BUILD_OPTION == 'Build' }
+            }
             steps {
                 script {
-                    // Check if deployment exists
+                    if (fileExists(DOCKERFILE_LOCATION)) {
+                        echo "Dockerfile found at ${DOCKERFILE_LOCATION}"
+                    } else {
+                        error "Dockerfile not found at ${DOCKERFILE_LOCATION}"
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_OPTION == 'Build' }
+            }
+            steps {
+                script {
+                    docker.build("${IMAGE_NAME_HARBOR}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
+                }
+            }
+        }
+
+        stage('Tag and Push Docker Image to Harbor') {
+            when {
+                expression { params.BUILD_OPTION == 'Build' }
+            }
+            steps {
+                script {
+                    docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
+                        docker.image("${IMAGE_NAME_HARBOR}").push()
+                    }
+                }
+            }
+        }
+
+        stage('Update Deployment YAML') {
+            when {
+                expression { params.BUILD_OPTION == 'Build' }
+            }
+            steps {
+                sh "sed -i 's|{{DOCKER_IMAGE}}|$IMAGE_NAME_HARBOR|g' ${PATH_YAML}"
+                sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
+            }
+        }
+
+        stage('Deploy Image to Kubernetes') {
+            steps {
+                script {
+                    def imageNameToDeploy = params.BUILD_OPTION == 'Build' ? IMAGE_NAME_HARBOR : params.CUSTOM_IMAGE
+
+                    if (params.BUILD_OPTION == 'Skip Build' && imageNameToDeploy == '') {
+                        error "No custom image provided for deployment. Please specify an image in the CUSTOM_IMAGE parameter."
+                    }
+
+                    // Check if the deployment already exists
+                    echo "Checking if deployment '$NAME_DEPLOY' exists in the namespace '$NAMES_SPACE'..."
                     def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
 
                     if (deploymentExists) {
-                        // Check current image and perform actions based on the image tag
                         def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
 
-                        if (currentImage != "${env.IMAGE_NAME_HARBOR}") {
-                            echo "New image detected: ${env.IMAGE_NAME_HARBOR}. Updating deployment..."
+                        if (currentImage != imageNameToDeploy) {
+                            echo "New image detected: $imageNameToDeploy. Updating the deployment..."
                             sh """
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
-                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$IMAGE_NAME_HARBOR --namespace=$NAMES_SPACE
+                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
                             """
                         } else {
-                            echo "Same image detected. No update required."
+                            echo "Same image detected. Performing rollout restart..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
                         }
                     } else {
-                        echo "Deployment does not exist. Applying deployment YAML..."
+                        echo "Deployment does not exist. Applying the deployment YAML..."
                         sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                     }
                 }
