@@ -12,7 +12,7 @@ pipeline {
 
     parameters {
         choice(name: 'BUILD_OPTION', choices: ['Build (Same Tag Rollout)', 'Build (Set New Tag)', 'Build (Deploy New YAML)', 'Skip Build'], description: 'Choose the build option')
-        string(name: 'FULL_IMAGE_NAME', defaultValue: '', description: 'Enter the full image name (including tag) for the build or for skipping build (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1:01)')
+        string(name: 'FULL_IMAGE_NAME', defaultValue: '', description: 'Enter the full image name (including tag) for the build or for skipping build (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1.01)')
     }
 
     stages {
@@ -58,7 +58,7 @@ pipeline {
             }
             steps {
                 script {
-                    def imageNameToBuild = params.FULL_IMAGE_NAME
+                    def imageNameToBuild = params.FULL_IMAGE_NAME.trim()
                     docker.build("${imageNameToBuild}", "--no-cache -f ${DOCKERFILE_LOCATION} .")
                 }
             }
@@ -70,7 +70,7 @@ pipeline {
             }
             steps {
                 script {
-                    def imageNameToPush = params.FULL_IMAGE_NAME
+                    def imageNameToPush = params.FULL_IMAGE_NAME.trim()
                     docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
                         docker.image("${imageNameToPush}").push()
                     }
@@ -78,10 +78,25 @@ pipeline {
             }
         }
 
+        stage('Update Deployment YAML') {
+            when {
+                expression { params.BUILD_OPTION == 'Build (Deploy New YAML)' || params.BUILD_OPTION == 'Build (Set New Tag)' }
+            }
+            steps {
+                script {
+                    def newImageName = params.FULL_IMAGE_NAME.trim()
+
+                    sh "sed -i 's|{{DOCKER_IMAGE}}|${newImageName}|g' ${PATH_YAML}"
+                    sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                    sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
+                }
+            }
+        }
+
         stage('Deploy Image to Kubernetes') {
             steps {
                 script {
-                    def imageNameToDeploy = params.FULL_IMAGE_NAME
+                    def imageNameToDeploy = params.FULL_IMAGE_NAME.trim()
 
                     if (params.BUILD_OPTION == 'Skip Build' && imageNameToDeploy == '') {
                         error "No image provided for deployment. Please specify an image in the FULL_IMAGE_NAME parameter."
