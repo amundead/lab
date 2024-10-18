@@ -80,7 +80,7 @@ pipeline {
 
         stage('Update Deployment YAML') {
             when {
-                expression { params.BUILD_OPTION == 'Build (Deploy New YAML)' || params.BUILD_OPTION == 'Build (Set New Tag)' }
+                expression { params.BUILD_OPTION == 'Build (Deploy New YAML)' || params.BUILD_OPTION == 'Build (Set New Tag)' || !deploymentExists }
             }
             steps {
                 script {
@@ -123,7 +123,15 @@ pipeline {
                             sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                         }
                     } else {
-                        echo "Deployment does not exist. Applying the deployment YAML..."
+                        // No deployment exists, apply YAML even in Skip Build case
+                        echo "Deployment does not exist. Updating YAML and applying it..."
+                        
+                        // Update YAML with the image to deploy
+                        sh "sed -i 's|{{DOCKER_IMAGE}}|${imageNameToDeploy}|g' ${PATH_YAML}"
+                        sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                        sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
+
+                        // Apply YAML
                         sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                     }
                 }
