@@ -11,7 +11,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'BUILD_OPTION', choices: ['Build (Same Tag Rollout)', 'Build (Set New Tag)', 'Build (Deploy New YAML)', 'Skip Build'], description: 'Choose the build option')
+        choice(name: 'BUILD_OPTION', choices: ['Build (Same Tag Rollout)', 'Build (Set New Tag)', 'Skip Build'], description: 'Choose the build option')
         string(name: 'FULL_IMAGE_NAME', defaultValue: '', description: 'Enter the full image name (including tag) for the build or for skipping build (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1.01)')
     }
 
@@ -76,10 +76,11 @@ pipeline {
                     }
                 }
             }
+        }
 
         stage('Update Deployment YAML') {
             when {
-                expression { params.BUILD_OPTION == 'Build (Deploy New YAML)' || params.BUILD_OPTION == 'Build (Set New Tag)' }
+                expression { params.BUILD_OPTION == 'Build (Set New Tag)' }
             }
             steps {
                 script {
@@ -119,7 +120,14 @@ pipeline {
                         }
                     } else {
                         // No deployment exists, apply YAML even in Skip Build case
-                        echo "Deployment does not exist. Applying YAML..."
+                        echo "Deployment does not exist. Updating YAML and applying it..."
+                        
+                        // Update YAML with the image to deploy
+                        sh "sed -i 's|{{DOCKER_IMAGE}}|${imageNameToDeploy}|g' ${PATH_YAML}"
+                        sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                        sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
+
+                        // Apply YAML
                         sh "kubectl --kubeconfig=$KUBECONFIG apply -f ${PATH_YAML} --namespace=$NAMES_SPACE"
                     }
                 }
