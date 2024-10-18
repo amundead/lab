@@ -19,10 +19,10 @@ pipeline {
         stage('Input Decision') {
             steps {
                 script {
-                    if (params.BUILD_OPTION.contains('Build')) {
-                        echo "You have chosen to build the image."
-                    } else {
+                    if (params.BUILD_OPTION == 'Skip Build') {
                         echo "Skipping build. The provided image will be deployed: ${params.FULL_IMAGE_NAME}"
+                    } else {
+                        echo "You have chosen to build the image."
                     }
                 }
             }
@@ -30,7 +30,7 @@ pipeline {
 
         stage('Clone Repository') {
             when {
-                expression { params.BUILD_OPTION.contains('Build') }
+                expression { params.BUILD_OPTION != 'Skip Build' }
             }
             steps {
                 git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
@@ -39,7 +39,7 @@ pipeline {
 
         stage('Check Dockerfile Location') {
             when {
-                expression { params.BUILD_OPTION.contains('Build') }
+                expression { params.BUILD_OPTION != 'Skip Build' }
             }
             steps {
                 script {
@@ -54,7 +54,7 @@ pipeline {
 
         stage('Build Docker Image') {
             when {
-                expression { params.BUILD_OPTION.contains('Build') }
+                expression { params.BUILD_OPTION != 'Skip Build' }
             }
             steps {
                 script {
@@ -66,7 +66,7 @@ pipeline {
 
         stage('Tag and Push Docker Image to Harbor') {
             when {
-                expression { params.BUILD_OPTION.contains('Build') }
+                expression { params.BUILD_OPTION != 'Skip Build' }
             }
             steps {
                 script {
