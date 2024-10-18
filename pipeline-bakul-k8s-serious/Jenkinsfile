@@ -80,15 +80,14 @@ pipeline {
 
         stage('Update Deployment YAML') {
             when {
-                expression { params.BUILD_OPTION == 'Build (Deploy New YAML)' || params.BUILD_OPTION == 'Build (Set New Tag)' || !deploymentExists }
+                expression { params.BUILD_OPTION == 'Build (Deploy New YAML)' || params.BUILD_OPTION == 'Build (Set New Tag)' }
             }
             steps {
                 script {
                     def newImageName = params.FULL_IMAGE_NAME.trim()
-
                     sh "sed -i 's|{{DOCKER_IMAGE}}|${newImageName}|g' ${PATH_YAML}"
-                    sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
-                    sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
+                    sh "sed -i 's|{{NAME_DEPLOY}}|${NAME_DEPLOY}|g' ${PATH_YAML}"
+                    sh "sed -i 's|{{NAMES_SPACE}}|${NAMES_SPACE}|g' ${PATH_YAML}"
                 }
             }
         }
