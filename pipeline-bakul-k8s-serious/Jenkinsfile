@@ -8,6 +8,7 @@ pipeline {
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
         DOCKERFILE_LOCATION = './Dockerfile'    // Dockerfile in root location
+        URL_GIT = "https://github.com/amundead/test-repo.git"  // GitHub repository URL
     }
 
     parameters {
@@ -33,7 +34,7 @@ pipeline {
                 expression { params.BUILD_OPTION != 'Skip Build' }
             }
             steps {
-                git branch: 'main', url: "https://github.com/amundead/test-repo.git"  // Clone your GitHub repo
+                git branch: 'main', url: "${URL_GIT}"  // Clone your GitHub repo using the environment variable
             }
         }
 
