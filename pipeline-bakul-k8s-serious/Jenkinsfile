@@ -120,9 +120,18 @@ pipeline {
                         def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
 
                         if (params.BUILD_OPTION == 'Build (Same Tag Rollout)') {
-                            echo "Same image tag detected. Performing rollout restart..."
-                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
-                        } else if (params.BUILD_OPTION == 'Build (Set New Tag)' && currentImage != imageNameToDeploy) {
+                            // Check if the provided image tag is different from the current image tag
+                            if (currentImage != imageNameToDeploy) {
+                                echo "Different image tag provided. Updating the deployment..."
+                                sh """
+                                    CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
+                                    kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
+                                """
+                            } else {
+                                echo "Using the same image tag as the current deployment. Performing rollout restart..."
+                                sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
+                            }
+                        } else if (params.BUILD_OPTION == 'Build (Set New Tag)') {
                             echo "New image tag detected: $imageNameToDeploy. Updating the deployment..."
                             sh """
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
