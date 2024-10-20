@@ -128,9 +128,18 @@ pipeline {
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
                                 kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
                             """
-                        } else if (params.BUILD_OPTION == 'Build (Set New Tag)' && currentImage == imageNameToDeploy) {
-                            echo "Image tag is the same as the current deployment. Performing rollout restart..."
-                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
+                        } else if (params.BUILD_OPTION == 'Skip Build') {
+                            // Handle case where user skips build and uses the same image name with an old tag
+                            if (currentImage != imageNameToDeploy) {
+                                echo "Using a different image tag. Updating the deployment..."
+                                sh """
+                                    CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
+                                    kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
+                                """
+                            } else {
+                                echo "Using the same image tag as the current deployment. Performing rollout restart..."
+                                sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
+                            }
                         }
                     } else {
                         // No deployment exists, apply YAML even in Skip Build case
