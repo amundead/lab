@@ -132,11 +132,18 @@ pipeline {
                                 sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
                             }
                         } else if (params.BUILD_OPTION == 'Build (Set New Tag)') {
-                            echo "New image tag detected: $imageNameToDeploy. Updating the deployment..."
-                            sh """
-                                CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
-                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
-                            """
+                            echo "New image tag detected: $imageNameToDeploy."
+                            // Check if the provided image tag is the same as the current one
+                            if (currentImage == imageNameToDeploy) {
+                                echo "Same image tag as current deployment. Performing rollout restart..."
+                                sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
+                            } else {
+                                echo "Updating the deployment with the new image tag..."
+                                sh """
+                                    CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
+                                    kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
+                                """
+                            }
                         } else if (params.BUILD_OPTION == 'Skip Build') {
                             // Handle case where user skips build and uses the same image name with an old tag
                             if (currentImage != imageNameToDeploy) {
@@ -174,10 +181,10 @@ pipeline {
     }         
     post {
         success {
-            echo 'Deployment to Kubernetes cluster successful!'
+            echo 'Deployment to Kubernetes was successful.'
         }
         failure {
-            echo 'Deployment failed!'
+            echo 'Deployment to Kubernetes failed.'
         }
     }
 }
