@@ -132,12 +132,12 @@ pipeline {
                                 sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
                             }
                         } else if (params.BUILD_OPTION == 'Build (Set New Tag)') {
-                            echo "New image tag detected: $imageNameToDeploy."
                             // Check if the provided image tag is the same as the current one
                             if (currentImage == imageNameToDeploy) {
                                 echo "Same image tag as current deployment. Performing rollout restart..."
                                 sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
                             } else {
+                                echo "New image tag detected: $imageNameToDeploy."
                                 echo "Updating the deployment with the new image tag..."
                                 sh """
                                     CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
