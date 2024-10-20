@@ -3,12 +3,11 @@ pipeline {
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        NAME_DEPLOY = 'node-helloworld'
         PATH_YAML = "deploy-dev/deploy_bakul.yaml"
         NAMES_SPACE = "dev-app-awam"  // Namespace for deployment in k8s
         KUBECONFIG = "/home/jenkins/agent/k8s-dev/k8s-dev.yaml"  // Path to your KUBECONFIG certs
         DOCKERFILE_LOCATION = './Dockerfile'    // Dockerfile in root location
-        URL_GIT = "https://github.com/amundead/test-repo.git"  // GitHub repository URL
+        GIT_URL = "https://github.com/amundead/test-repo.git"  // GitHub repository URL
     }
 
     parameters {
@@ -17,6 +16,17 @@ pipeline {
     }
 
     stages {
+        stage('Extract Image Name') {
+            steps {
+                script {
+                    // Extract the image name (without registry and tag)
+                    def imageNameToDeploy = params.FULL_IMAGE_NAME.tokenize('/').last().split(':')[0]
+                    echo "Extracted image name for deployment: ${imageNameToDeploy}"
+                    env.NAME_DEPLOY = imageNameToDeploy
+                }
+            }
+        }
+
         stage('Input Decision') {
             steps {
                 script {
@@ -34,7 +44,7 @@ pipeline {
                 expression { params.BUILD_OPTION != 'Skip Build' }
             }
             steps {
-                git branch: 'main', url: "${URL_GIT}"  // Clone your GitHub repo using the environment variable
+                git branch: 'main', url: "${GIT_URL}"  // Clone your GitHub repo
             }
         }
 
@@ -87,7 +97,7 @@ pipeline {
                 script {
                     def newImageName = params.FULL_IMAGE_NAME.trim()
                     sh "sed -i 's|{{DOCKER_IMAGE}}|${newImageName}|g' ${PATH_YAML}"
-                    sh "sed -i 's|{{NAME_DEPLOY}}|${NAME_DEPLOY}|g' ${PATH_YAML}"
+                    sh "sed -i 's|{{NAME_DEPLOY}}|${env.NAME_DEPLOY}|g' ${PATH_YAML}"
                     sh "sed -i 's|{{NAMES_SPACE}}|${NAMES_SPACE}|g' ${PATH_YAML}"
                 }
             }
@@ -103,20 +113,20 @@ pipeline {
                     }
 
                     // Check if the deployment already exists
-                    echo "Checking if deployment '$NAME_DEPLOY' exists in the namespace '$NAMES_SPACE'..."
-                    def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
+                    echo "Checking if deployment '$env.NAME_DEPLOY' exists in the namespace '$NAMES_SPACE'..."
+                    def deploymentExists = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE", returnStatus: true) == 0
 
                     if (deploymentExists) {
-                        def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
+                        def currentImage = sh(script: "kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].image}'", returnStdout: true).trim()
 
                         if (params.BUILD_OPTION == 'Build (Same Tag Rollout)') {
                             echo "Same image tag detected. Performing rollout restart..."
-                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$NAME_DEPLOY --namespace=$NAMES_SPACE"
+                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
                         } else if (params.BUILD_OPTION == 'Build (Set New Tag)' && currentImage != imageNameToDeploy) {
                             echo "New image tag detected: $imageNameToDeploy. Updating the deployment..."
                             sh """
-                                CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
-                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
+                                CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
+                                kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
                             """
                         }
                     } else {
@@ -125,7 +135,7 @@ pipeline {
                         
                         // Update YAML with the image to deploy
                         sh "sed -i 's|{{DOCKER_IMAGE}}|${imageNameToDeploy}|g' ${PATH_YAML}"
-                        sh "sed -i 's|{{NAME_DEPLOY}}|$NAME_DEPLOY|g' ${PATH_YAML}"
+                        sh "sed -i 's|{{NAME_DEPLOY}}|$env.NAME_DEPLOY|g' ${PATH_YAML}"
                         sh "sed -i 's|{{NAMES_SPACE}}|$NAMES_SPACE|g' ${PATH_YAML}"
 
                         // Apply YAML
@@ -134,8 +144,13 @@ pipeline {
                 }
             }
         }
-    }
 
+        stage('Show Deployment Services') {
+                    steps {
+                        sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $env.NAME_DEPLOY-loadbalancer"  // Get the LoadBalancer IP of service.
+                    }
+                }
+    }         
     post {
         success {
             echo 'Deployment to Kubernetes cluster successful!'
