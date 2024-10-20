@@ -128,6 +128,9 @@ pipeline {
                                 CONTAINER_NAME=\$(kubectl --kubeconfig=$KUBECONFIG get deployment $env.NAME_DEPLOY --namespace=$NAMES_SPACE -o jsonpath='{.spec.template.spec.containers[0].name}')
                                 kubectl --kubeconfig=$KUBECONFIG set image deployment/$env.NAME_DEPLOY \${CONTAINER_NAME}=$imageNameToDeploy --namespace=$NAMES_SPACE
                             """
+                        } else if (params.BUILD_OPTION == 'Build (Set New Tag)' && currentImage == imageNameToDeploy) {
+                            echo "Image tag is the same as the current deployment. Performing rollout restart..."
+                            sh "kubectl --kubeconfig=$KUBECONFIG rollout restart deployment/$env.NAME_DEPLOY --namespace=$NAMES_SPACE"
                         }
                     } else {
                         // No deployment exists, apply YAML even in Skip Build case
@@ -146,10 +149,10 @@ pipeline {
         }
 
         stage('Show Deployment Services') {
-                    steps {
-                        sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $env.NAME_DEPLOY-loadbalancer"  // Get the LoadBalancer IP of service.
-                    }
-                }
+            steps {
+                sh "kubectl --kubeconfig=$KUBECONFIG get svc -n $NAMES_SPACE $env.NAME_DEPLOY-loadbalancer"  // Get the LoadBalancer IP of service.
+            }
+        }
     }         
     post {
         success {
