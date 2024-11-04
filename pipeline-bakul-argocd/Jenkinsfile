@@ -1,16 +1,20 @@
 pipeline {
     agent any
+    
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'
         DOCKERFILE_LOCATION = './Dockerfile'
         PATH_YAML = 'deploy-dev/argo_deploy.yaml'
-        GIT_URL = 'https://github.com/amundead/test-repo.git' // Define the Git URL here
+        GIT_URL = 'https://github.com/amundead/test-repo.git'
+        ARGOCD_SERVER = 'kargo.mod.gov.my' // Set the Argo CD server here
     }
+    
     parameters {
         string(name: 'IMAGE_NAME_TAG', defaultValue: '', description: 'Full image name with tag (e.g., bakul.mod.gov.my/testing-app/node-helloworld:v1.01)')
         string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
-        string(name: 'APP_NAME', defaultValue: 'your-app-name', description: 'ArgoCD application name')
+        string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
     }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -59,16 +63,27 @@ pipeline {
         stage('Trigger ArgoCD Sync') {
             steps {
                 script {
-                    // Use withCredentials to access ArgoCD username and password
-                    withCredentials([usernamePassword(credentialsId: 'argocd-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
-                        // Log in to ArgoCD
-                        sh """
-                        argocd login ${ARGOCD_SERVER} --username ${ARGOCD_USERNAME} --password ${ARGOCD_PASSWORD} --insecure
-                        """
-                        // Sync the application using user input for APP_NAME
-                        sh """
-                        argocd app sync ${params.APP_NAME}
-                        """
+                    withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
+                        // Obtain an ArgoCD API token
+                        def token = sh (
+                            script: """curl -s -X POST -k -d '{"username":"${ARGOCD_USERNAME}", "password":"${ARGOCD_PASSWORD}"}' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session | jq -r .token""",
+                            returnStdout: true
+                        ).trim()
+
+                        // Validate if the application exists
+                        def appExists = sh (
+                            script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
+                            returnStdout: true
+                        ).trim()
+
+                        if (appExists) {
+                            // Sync the application using the token and user input for APP_NAME
+                            sh """
+                            curl -s -X POST -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
+                            """
+                        } else {
+                            error("Application '${params.APP_NAME}' does not exist in Argo CD. Please check the application name.")
+                        }
                     }
                 }
             }
@@ -77,8 +92,7 @@ pipeline {
 
     post {
         always {
-            // Logout from ArgoCD (optional)
-            sh "argocd logout ${ARGOCD_SERVER}"
+            echo "Pipeline execution completed."
         }
         success {
             echo "Pipeline completed successfully!"
