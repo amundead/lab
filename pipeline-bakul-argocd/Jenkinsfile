@@ -62,24 +62,34 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
-                        // Obtain Argo CD API token securely without interpolation
-                        def token = sh(script: '''
-                            curl -s -X POST -k -d '{"username":"${ARGOCD_USERNAME}", "password":"${ARGOCD_PASSWORD}"}' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session | jq -r .token
-                        ''', returnStdout: true).trim()
+                        // Attempt to retrieve Argo CD API token securely
+                        def tokenResponse = sh(script: """
+                            curl -s -X POST -k -d '{"username":"${ARGOCD_USERNAME}", "password":"${ARGOCD_PASSWORD}"}' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session
+                        """, returnStdout: true).trim()
 
-                        // Check if application exists
-                        def appExists = sh(
-                            script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
-                            returnStdout: true
-                        ).trim()
+                        // Check if tokenResponse contains the token
+                        def token = sh(script: "echo '${tokenResponse}' | jq -r .token", returnStdout: true).trim()
 
-                        if (appExists) {
-                            // Trigger Argo CD sync
-                            sh """
-                            curl -s -X POST -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
-                            """
+                        if (token) {
+                            // Token retrieved successfully, proceed with app check and sync
+                            echo "Token retrieved: ${token}"
+                            
+                            // Check if application exists
+                            def appExists = sh(
+                                script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
+                                returnStdout: true
+                            ).trim()
+
+                            if (appExists) {
+                                // Sync the application
+                                sh """
+                                curl -s -X POST -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
+                                """
+                            } else {
+                                error("Application '${params.APP_NAME}' does not exist in Argo CD. Please check the application name.")
+                            }
                         } else {
-                            error("Application '${params.APP_NAME}' does not exist in Argo CD. Please check the application name.")
+                            error("Failed to retrieve token from ArgoCD. Please check your credentials.")
                         }
                     }
                 }
