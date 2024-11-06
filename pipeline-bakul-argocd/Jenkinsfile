@@ -50,7 +50,7 @@ pipeline {
 
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
 
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         sh """
                         git config user.name "amundead"
                         git config user.email "amundeadz@yahoo.com"
