@@ -10,7 +10,7 @@ pipeline {
 
     parameters {
         choice(name: 'ACTION', choices: ['Build and Push', 'Push Only'], description: 'Choose to build a new image or push an existing one')
-        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
+        string(name: 'BASE_IMAGE_NAME', defaultValue: '', description: 'Base image name (e.g., testing-app/node-helloworld)')
         string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
         string(name: 'GIT_URL', defaultValue: '', description: 'GitHub repository URL e.g. , https://github.com/amundead/test-repo.git')
     }
