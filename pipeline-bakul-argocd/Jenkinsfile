@@ -12,7 +12,7 @@ pipeline {
         choice(name: 'ACTION', choices: ['Build and Push', 'Push Only'], description: 'Choose to build a new image or push an existing one')
         string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
         string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
-        string(name: 'GIT_URL', defaultValue: 'https://github.com/amundead/test-repo.git', description: 'GitHub repository URL')
+        string(name: 'GIT_URL', defaultValue: '', description: 'GitHub repository URL e.g. , https://github.com/amundead/test-repo.git')
     }
 
     stages {
@@ -72,8 +72,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         // Commit changes to the Git repository
                         sh """
-                        git config user.name "Jenkins"
-                        git config user.email "jenkins@example.com"
+                        git config user.name "$GITHUB_USERNAME"
+                        git config user.email "amundeadz@yahoo.com"
                         git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
                         git add ${PATH_YAML}
                         git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
