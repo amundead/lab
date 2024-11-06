@@ -1,0 +1,113 @@
+pipeline {
+    agent any
+
+    environment {
+        HARBOR_REGISTRY = 'bakul.mod.gov.my'
+        DOCKERFILE_LOCATION = './Dockerfile'
+        PATH_YAML = 'deploy-dev/argo_deploy.yaml'
+        ARGOCD_SERVER = 'kargo.mod.gov.my'
+    }
+
+    parameters {
+        choice(name: 'ACTION', choices: ['Build Image', 'Push Image Only'], description: 'Select whether to build and push a new image or just push an existing image')
+        string(name: 'GIT_URL', defaultValue: 'https://gitlab.com/your-namespace/your-repo.git', description: 'Git repository URL')
+        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
+        string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: "${params.GIT_URL}", branch: 'main'
+            }
+        }
+
+        stage('Build and/or Push Image') {
+            steps {
+                script {
+                    if (params.ACTION == 'Build Image') {
+                        // Build the Docker image and tag it
+                        def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
+                        sh "docker build --no-cache -t ${imageName} -f ${DOCKERFILE_LOCATION} ."
+                        env.IMAGE_NAME_HARBOR = imageName // Save image name for later use
+
+                        // Push Docker image to Harbor
+                        withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
+                            sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
+                            sh "docker push ${env.IMAGE_NAME_HARBOR}"
+                        }
+                    } else {
+                        // Push existing image if skipping build
+                        env.IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
+                    }
+                }
+            }
+        }
+
+        stage('Get Docker Digest and Update YAML') {
+            steps {
+                script {
+                    // Get the image digest
+                    def DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2", returnStdout: true).trim()
+                    echo "Docker Digest: ${DOCKER_DIGEST}"
+
+                    // Replace image in the ArgoCD deployment YAML
+                    sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
+
+                    // Commit the changes to the YAML file
+                    withCredentials([usernamePassword(credentialsId: 'gitlab-credentials-id', passwordVariable: 'GITLAB_TOKEN', usernameVariable: 'GITLAB_USERNAME')]) {
+                        sh """
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@example.com"
+                        git remote set-url origin https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${params.GIT_URL.replace('https://', '')}
+                        git add ${PATH_YAML}
+                        git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
+                        git push origin main
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Trigger ArgoCD Sync') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
+                        // Obtain an ArgoCD API token
+                        def token = sh(
+                            script: """curl -s -X POST -k -d '{"username":"${ARGOCD_USERNAME}", "password":"${ARGOCD_PASSWORD}"}' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session | jq -r .token""",
+                            returnStdout: true
+                        ).trim()
+
+                        // Check if the application exists in ArgoCD
+                        def appExists = sh(
+                            script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
+                            returnStdout: true
+                        ).trim()
+
+                        if (appExists) {
+                            // Sync the application using the token
+                            sh """
+                            curl -s -X POST -k -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
+                            """
+                        } else {
+                            error("Application '${params.APP_NAME}' does not exist in Argo CD. Please check the application name.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline execution completed."
+        }
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed."
+        }
+    }
+}
