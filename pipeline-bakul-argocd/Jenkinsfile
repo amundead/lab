@@ -50,7 +50,6 @@ pipeline {
                     // Update YAML file with the retrieved digest
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${env.DOCKER_DIGEST}|g' ${PATH_YAML}"
                 
-
                 }
             }
         }
