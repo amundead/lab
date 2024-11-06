@@ -57,7 +57,7 @@ pipeline {
         stage('Commit YAML Changes') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-                    sh 'git config user.name $GITHUB_USERNAME'
+                    sh 'git config user.name "${GITHUB_USERNAME}"'
                     sh 'git config user.email "amundeadz@yahoo.com"'
                     sh "git add ${PATH_YAML}"
                     sh 'git commit -m "Update image digest in YAML file"'
