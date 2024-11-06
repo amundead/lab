@@ -44,12 +44,13 @@ pipeline {
             steps {
                 script {
                     // Retrieve the digest of the specified image from the registry
-                    def digestCommand = "docker pull ${env.IMAGE_NAME_HARBOR} && docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2"
-                    env.DOCKER_DIGEST = sh(script: digestCommand, returnStdout: true).trim()
-                    echo "Docker Digest: ${env.DOCKER_DIGEST}"
+                    def DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2", returnStdout: true).trim()
+                    echo "Docker Digest: ${DOCKER_DIGEST}"
 
                     // Update YAML file with the retrieved digest
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${env.DOCKER_DIGEST}|g' ${PATH_YAML}"
+                
+
                 }
             }
         }
