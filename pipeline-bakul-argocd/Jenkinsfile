@@ -24,7 +24,7 @@ pipeline {
         stage('Build Image') {
             steps {
                 script {
-                    def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${env.BUILD_ID}"
+                    def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
                     sh "docker build -t ${imageName} -f ${DOCKERFILE_LOCATION} ."
                     env.IMAGE_NAME_HARBOR = imageName
                 }
