@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hello-world
-        image: bakul.mod.gov.my/testing-app/node-helloworld:v1.03@sha256:1609e3d922e5678e84dde30657bc6b6e11889c3fd8f28cb0261366f05ecaba93
+        image: bakul.mod.gov.my/testing-app/node-helloworld:v1.02@sha256:8099bd4a80ef02ef5750421fa0b571bbbd7fb33e87c8252d0fd6f9f426a696e9
         imagePullPolicy: Always
         ports:
         - containerPort: 80   # node-hello-world listens on port 80
