@@ -10,9 +10,7 @@ pipeline {
 
     parameters {
         choice(name: 'ACTION', choices: ['Build and Push', 'Push Only'], description: 'Choose to build a new image or push an existing one')
-        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
-        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Image tag (e.g., v1.01)')
-        string(name: 'IMAGE_DIGEST', defaultValue: '', description: 'Image digest (optional, used only if Push Only is selected)')
+        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld:v1.01', description: 'Full image name with tag (e.g., testing-app/node-helloworld:v1.01)')
         string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
         string(name: 'GIT_URL', defaultValue: 'https://github.com/amundead/test-repo.git', description: 'GitHub repository URL')
     }
@@ -30,10 +28,12 @@ pipeline {
             }
             steps {
                 script {
-                    def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${params.IMAGE_TAG}"
-                    sh "docker build -t ${imageName} -f ${DOCKERFILE_LOCATION} ."
-                    env.IMAGE_NAME_HARBOR = imageName // Save the image name for later use
+                    env.IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
 
+                    // Build the Docker image
+                    sh "docker build -t ${env.IMAGE_NAME_HARBOR} -f ${DOCKERFILE_LOCATION} ."
+
+                    // Push the image to the Harbor registry
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
                         sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
                         sh "docker push ${env.IMAGE_NAME_HARBOR}"
@@ -48,17 +48,12 @@ pipeline {
             }
             steps {
                 script {
-                    def imageRef
-                    if (params.IMAGE_DIGEST) {
-                        imageRef = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}@${params.IMAGE_DIGEST}"
-                    } else {
-                        imageRef = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${params.IMAGE_TAG}"
-                    }
-                    env.IMAGE_NAME_HARBOR = imageRef // Save for later use
+                    env.IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
 
+                    // Pull the specified image to ensure it's available
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
                         sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
-                        sh "docker pull ${env.IMAGE_NAME_HARBOR}" // Pull the specified image to ensure it's available
+                        sh "docker pull ${env.IMAGE_NAME_HARBOR}"
                     }
                 }
             }
@@ -67,15 +62,18 @@ pipeline {
         stage('Get Docker Digest and Update YAML') {
             steps {
                 script {
+                    // Retrieve the Docker digest for the specified image
                     def DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2", returnStdout: true).trim()
                     echo "Docker Digest: ${DOCKER_DIGEST}"
 
+                    // Update YAML with the new image reference
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
 
+                    // Commit and push changes to the Git repository
                     withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         sh """
                         git config user.name "$GITHUB_USERNAME"
-                        git config user.email "jenkins@example.com"
+                        git config user.email "amundeadz@yahoo.com"
                         git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
                         git add ${PATH_YAML}
                         git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
