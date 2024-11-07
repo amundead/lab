@@ -71,7 +71,7 @@ pipeline {
 
         stage('ArgoCD Sync') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'argocd-credentials-id', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
                     script {
                         // Obtain ArgoCD auth token
                         def token = sh(
