@@ -9,53 +9,56 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'ACTION', choices: ['Build and Push Image', 'Push Image Only'], description: 'Choose whether to build a new image or push an existing one')
-        string(name: 'BASE_IMAGE_NAME', defaultValue: '', description: 'Full image name with tag (e.g., testing-app/node-helloworld:v1.00)')
+        choice(name: 'ACTION', choices: ['Build and Push', 'Push Only'], description: 'Choose to build a new image or push an existing one')
+        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Image tag (e.g., v1.01)')
+        string(name: 'IMAGE_DIGEST', defaultValue: '', description: 'Image digest (optional, used only if Push Only is selected)')
         string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
-        string(name: 'GIT_URL', defaultValue: '', description: 'GitHub repository URL (e.g., https://github.com/amundead/test-repo.git)')
+        string(name: 'GIT_URL', defaultValue: 'https://github.com/amundead/test-repo.git', description: 'GitHub repository URL')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the source code from the GitHub repository
                 git url: "${params.GIT_URL}", branch: 'main'
             }
         }
 
-        stage('Build and Push Image') {
+        stage('Build and Push Docker Image') {
             when {
-                expression { params.ACTION == 'Build and Push Image' }
+                expression { params.ACTION == 'Build and Push' }
             }
             steps {
                 script {
-                    // Build the Docker image
-                    sh "docker build -t ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME} -f ${DOCKERFILE_LOCATION} ."
-                }
-                script {
-                    // Push the Docker image to Harbor
+                    def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${params.IMAGE_TAG}"
+                    sh "docker build -t ${imageName} -f ${DOCKERFILE_LOCATION} ."
+                    env.IMAGE_NAME_HARBOR = imageName // Save the image name for later use
+
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
-                        sh """
-                            echo $HARBOR_PASSWORD | docker login ${HARBOR_REGISTRY} -u $HARBOR_USERNAME --password-stdin
-                            docker push ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}
-                        """
+                        sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
+                        sh "docker push ${env.IMAGE_NAME_HARBOR}"
                     }
                 }
             }
         }
 
-        stage('Push Image Only') {
+        stage('Push Only') {
             when {
-                expression { params.ACTION == 'Push Image Only' }
+                expression { params.ACTION == 'Push Only' }
             }
             steps {
                 script {
-                    // Push an existing image to Harbor
+                    def imageRef
+                    if (params.IMAGE_DIGEST) {
+                        imageRef = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}@${params.IMAGE_DIGEST}"
+                    } else {
+                        imageRef = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${params.IMAGE_TAG}"
+                    }
+                    env.IMAGE_NAME_HARBOR = imageRef // Save for later use
+
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
-                        sh """
-                            echo $HARBOR_PASSWORD | docker login ${HARBOR_REGISTRY} -u $HARBOR_USERNAME --password-stdin
-                            docker push ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}
-                        """
+                        sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
+                        sh "docker pull ${env.IMAGE_NAME_HARBOR}" // Pull the specified image to ensure it's available
                     }
                 }
             }
@@ -64,57 +67,19 @@ pipeline {
         stage('Get Docker Digest and Update YAML') {
             steps {
                 script {
-                    // Pull the image to ensure it's available
-                    sh "docker pull ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
+                    def DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2", returnStdout: true).trim()
+                    echo "Docker Digest: ${DOCKER_DIGEST}"
 
-                    // Get the image digest
-                    def dockerInspectOutput = sh(
-                        script: "docker inspect --format='{{index .RepoDigests 0}}' ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}",
-                        returnStdout: true
-                    ).trim()
+                    sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
 
-                    // Check if dockerInspectOutput contains '@' to split
-                    if (!dockerInspectOutput.contains('@')) {
-                        error("Failed to retrieve digest for image ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}. Output: ${dockerInspectOutput}")
-                    }
-
-                    // Extract the digest part
-                    def dockerDigest = dockerInspectOutput.split('@')[1]
-                    echo "Docker Digest: ${dockerDigest}"
-
-                    // Update the YAML file with the new image and digest
-                    sh """
-                        sed -i 's|image:.*|image: ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}@${dockerDigest}|' ${PATH_YAML}
-                    """
-                }
-            }
-        }
-
-        stage('Commit and Push Changes to Git') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-                    script {
-                        // Sanitize GIT_URL by removing 'https://'
-                        def sanitizedGitUrl = params.GIT_URL.replace('https://', '')
-                        def gitUrlWithCredentials = "https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${sanitizedGitUrl}"
-
-                        // Configure Git with credentials and set remote URL
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         sh """
-                            git config user.name "$GITHUB_USERNAME"
-                            git config user.email "amundeadz@yahoo.com"
-                            git remote set-url origin ${gitUrlWithCredentials}
-                        """
-
-                        // Pull the latest changes to avoid conflicts
-                        sh """
-                            git pull origin main --rebase
-                        """
-
-                        // Add, commit, and push changes
-                        sh """
-                            git add ${PATH_YAML}
-                            git commit -m "Update image in YAML to ${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}@${dockerDigest}" || echo "No changes to commit"
-                            git push origin HEAD:main
+                        git config user.name "$GITHUB_USERNAME"
+                        git config user.email "jenkins@example.com"
+                        git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
+                        git add ${PATH_YAML}
+                        git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
+                        git push origin main
                         """
                     }
                 }
@@ -123,31 +88,24 @@ pipeline {
 
         stage('Trigger ArgoCD Sync') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
-                    script {
-                        // Obtain ArgoCD auth token
-                        def token = sh(
-                            script: """
-                                curl -s -X POST -k -d '{ "username": "${ARGOCD_USERNAME}", "password": "${ARGOCD_PASSWORD}" }' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session | jq -r .token
-                            """,
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
+                        def token = sh (
+                            script: """curl -s -X POST -k -d '{"username":"${ARGOCD_USERNAME}", "password":"${ARGOCD_PASSWORD}"}' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session | jq -r .token""",
                             returnStdout: true
                         ).trim()
 
-                        // Check if application exists
-                        def appExists = sh(
-                            script: """
-                                curl -s -X GET -k -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'
-                            """,
+                        def appExists = sh (
+                            script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
                             returnStdout: true
                         ).trim()
 
                         if (appExists) {
-                            // Trigger ArgoCD sync
                             sh """
-                                curl -s -X POST -k -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
+                            curl -s -X POST -k -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
                             """
                         } else {
-                            error("Application '${params.APP_NAME}' does not exist in Argo CD. Please check the application name.")
+                            error("Application '${params.APP_NAME}' does not exist in Argo CD.")
                         }
                     }
                 }
@@ -157,7 +115,7 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            echo "Pipeline execution completed."
         }
         success {
             echo "Pipeline completed successfully!"
