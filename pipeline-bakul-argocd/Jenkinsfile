@@ -53,7 +53,7 @@ pipeline {
 
         stage('Commit and Push Changes to Git') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                     script {
                         // Commit changes to the Git repository
                         sh """
