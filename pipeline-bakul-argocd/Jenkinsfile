@@ -57,7 +57,7 @@ pipeline {
                         git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
 
                         # Pull the latest changes to avoid conflicts
-                        git pull origin main --rebase
+                        #git pull origin main --rebase
 
                         git add ${PATH_YAML}
                         git commit -m "Update image in YAML to ${IMAGE_NAME_HARBOR}@${dockerDigest}" || echo "No changes to commit"
