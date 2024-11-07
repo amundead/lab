@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'
         NAMES_SPACE = 'dev-app-awam'
@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image
-                    sh "docker build -t ${IMAGE_NAME_HARBOR} -f ${DOCKERFILE_LOCATION} ."
+                    sh "docker build --no-cache -t ${IMAGE_NAME_HARBOR} -f ${DOCKERFILE_LOCATION} ."
                     // Push the image to Harbor
                     sh "docker push ${IMAGE_NAME_HARBOR}"
                 }
