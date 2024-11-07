@@ -11,7 +11,7 @@ pipeline {
     parameters {
         choice(name: 'ACTION', choices: ['Build Image', 'Push Image Only'], description: 'Choose whether to build a new image or push an existing one')
         string(name: 'BASE_IMAGE_NAME', description: 'Provide the base image name with tag (e.g., testing-app/node-helloworld:v1.03)')
-        string(name: 'GIT_URL', description: 'Git repository URL for updating YAML')
+        string(name: 'GIT_URL', description: 'Git repository URL for updating YAML (e.g. , https://github.com/amundead/test-repo.git)')
     }
 
     stages {
