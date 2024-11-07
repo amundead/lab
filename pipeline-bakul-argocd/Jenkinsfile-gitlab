@@ -70,11 +70,11 @@ pipeline {
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
 
                     // Commit and push changes to the Git repository
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'gitlab-credentials-amir', passwordVariable: 'GITLAB_TOKEN', usernameVariable: 'GITLAB_USERNAME')]) {
                         sh """
-                        git config user.name "$GITHUB_USERNAME"
+                        git config user.name "$GITLAB_USERNAME"
                         git config user.email "amundeadz@yahoo.com"
-                        git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
+                        git remote set-url origin https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${params.GIT_URL.replace('https://', '')}
                         git add ${PATH_YAML}
                         git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
                         git push origin main
