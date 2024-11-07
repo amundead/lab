@@ -31,7 +31,7 @@ pipeline {
                     env.IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
 
                     // Build the Docker image
-                    sh "docker build -t ${env.IMAGE_NAME_HARBOR} -f ${DOCKERFILE_LOCATION} ."
+                    sh "docker build --no-cache -t ${env.IMAGE_NAME_HARBOR} -f ${DOCKERFILE_LOCATION} ."
 
                     // Push the image to the Harbor registry
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
@@ -70,7 +70,7 @@ pipeline {
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
 
                     // Commit and push changes to the Git repository
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         sh """
                         git config user.name "$GITHUB_USERNAME"
                         git config user.email "amundeadz@yahoo.com"
