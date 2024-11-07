@@ -37,33 +37,32 @@ pipeline {
             }
         }
 
-        stage('Get Docker Digest') {
+        stage('Get Docker Digest and Push Changes to Git') {
             steps {
                 script {
-                    // Get the Docker image digest
-                    DOCKER_DIGEST = sh(
-                        script: "docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME_HARBOR} | cut -d '@' -f 2",
+                    // Retrieve Docker digest for the image
+                    def dockerDigest = sh(
+                        script: "docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME_HARBOR}",
                         returnStdout: true
-                    ).trim()
+                    ).trim().split('@')[1]
 
-                    // Update the image in YAML using sed
-                    sh "sed -i 's|image:.*|image: ${IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
-                }
-            }
-        }
+                    // Update YAML file with the new image and digest
+                    sh "sed -i 's|image:.*|image: ${IMAGE_NAME_HARBOR}@${dockerDigest}|g' ${PATH_YAML}"
 
-        stage('Commit and Push Changes to Git') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-                    script {
-                        // Commit changes to the Git repository
+                    // Commit and push changes to Git
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         sh """
                         git config user.name "$GITHUB_USERNAME"
                         git config user.email "amundeadz@yahoo.com"
                         git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
+
+                        # Pull the latest changes to avoid conflicts
                         git pull origin main --rebase
+
                         git add ${PATH_YAML}
-                        git commit -m "Update image in YAML to ${IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
+                        git commit -m "Update image in YAML to ${IMAGE_NAME_HARBOR}@${dockerDigest}" || echo "No changes to commit"
+
+                        # Push the committed changes
                         git push origin main
                         """
                     }
