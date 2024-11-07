@@ -9,9 +9,12 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name with tag (e.g: testing-app/node-helloworld:v1.00)')
+        choice(name: 'ACTION', choices: ['Build and Push', 'Push Only'], description: 'Choose to build a new image or push an existing one')
+        string(name: 'BASE_IMAGE_NAME', defaultValue: 'testing-app/node-helloworld', description: 'Base image name (e.g., testing-app/node-helloworld)')
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Image tag (e.g., v1.01)')
+        string(name: 'IMAGE_DIGEST', defaultValue: '', description: 'Image digest (optional, used only if Push Only is selected)')
         string(name: 'APP_NAME', defaultValue: '', description: 'Name of the Argo CD application to sync')
-        string(name: 'GIT_URL', defaultValue: '', description: 'Git repository URL (e.g: https://github.com/amundead/test-repo.git)')
+        string(name: 'GIT_URL', defaultValue: 'https://github.com/amundead/test-repo.git', description: 'GitHub repository URL')
     }
 
     stages {
@@ -21,19 +24,16 @@ pipeline {
             }
         }
 
-        stage('Build Image') {
-            steps {
-                script {
-                    def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
-                    sh "docker build -t ${imageName} -f ${DOCKERFILE_LOCATION} ."
-                    env.IMAGE_NAME_HARBOR = imageName
-                }
+        stage('Build and Push Docker Image') {
+            when {
+                expression { params.ACTION == 'Build and Push' }
             }
-        }
-
-        stage('Push Docker Image to Harbor') {
             steps {
                 script {
+                    def imageName = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${params.IMAGE_TAG}"
+                    sh "docker build -t ${imageName} -f ${DOCKERFILE_LOCATION} ."
+                    env.IMAGE_NAME_HARBOR = imageName // Save the image name for later use
+
                     withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
                         sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
                         sh "docker push ${env.IMAGE_NAME_HARBOR}"
@@ -42,7 +42,30 @@ pipeline {
             }
         }
 
-        stage('Get Docker Digest') {
+        stage('Push Only') {
+            when {
+                expression { params.ACTION == 'Push Only' }
+            }
+            steps {
+                script {
+                    def imageRef
+                    if (params.IMAGE_DIGEST) {
+                        imageRef = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}@${params.IMAGE_DIGEST}"
+                    } else {
+                        imageRef = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}:${params.IMAGE_TAG}"
+                    }
+                    env.IMAGE_NAME_HARBOR = imageRef // Save for later use
+
+                    withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
+                        sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
+                        sh "docker pull ${env.IMAGE_NAME_HARBOR}" // Pull the specified image to ensure it's available
+                        sh "docker push ${env.IMAGE_NAME_HARBOR}" // Re-push to registry
+                    }
+                }
+            }
+        }
+
+        stage('Get Docker Digest and Update YAML') {
             steps {
                 script {
                     def DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2", returnStdout: true).trim()
@@ -50,10 +73,10 @@ pipeline {
 
                     sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
 
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                         sh """
-                        git config user.name "amundead"
-                        git config user.email "amundeadz@yahoo.com"
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@example.com"
                         git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
                         git add ${PATH_YAML}
                         git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
@@ -74,7 +97,7 @@ pipeline {
                         ).trim()
 
                         def appExists = sh (
-                            script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
+                            script: """curl -s -X GET -k -H "Authorization: Bearer ${token}" https://${ARGOCD_SERVER}/api/v1/applications | jq -r '.items[] | select(.metadata.name == "${params.APP_NAME}")'""",
                             returnStdout: true
                         ).trim()
 
@@ -83,7 +106,7 @@ pipeline {
                             curl -s -X POST -k -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" https://${ARGOCD_SERVER}/api/v1/applications/${params.APP_NAME}/sync
                             """
                         } else {
-                            error("Application '${params.APP_NAME}' does not exist in Argo CD. Please check the application name.")
+                            error("Application '${params.APP_NAME}' does not exist in Argo CD.")
                         }
                     }
                 }
