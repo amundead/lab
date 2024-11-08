@@ -62,23 +62,33 @@ pipeline {
         stage('Get Docker Digest and Update YAML') {
             steps {
                 script {
-                    // Retrieve the Docker digest for the specified image
+                    // Get Docker Digest
                     def DOCKER_DIGEST = sh(script: "docker inspect --format='{{index .RepoDigests 0}}' ${env.IMAGE_NAME_HARBOR} | cut -d '@' -f 2", returnStdout: true).trim()
                     echo "Docker Digest: ${DOCKER_DIGEST}"
 
-                    // Update YAML with the new image reference
-                    sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
+                    // Check if the current YAML file already has this digest
+                    def yamlUpdated = sh(
+                        script: "grep 'image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}' ${PATH_YAML}",
+                        returnStatus: true // Return exit code instead of throwing an error if not found
+                    )
 
-                    // Commit and push changes to the Git repository
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-                        sh """
-                        git config user.name "$GITHUB_USERNAME"
-                        git config user.email "amundeadz@yahoo.com"
-                        git remote set-url origin https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${params.GIT_URL.replace('https://', '')}
-                        git add ${PATH_YAML}
-                        git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}"
-                        git push origin main
-                        """
+                    if (yamlUpdated == 0) {
+                        echo "YAML file is already up-to-date with image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}. Skipping commit."
+                    } else {
+                        // Update YAML file with the new image and digest
+                        sh "sed -i 's|image:.*|image: ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}|g' ${PATH_YAML}"
+
+                        // Commit and push the updated YAML to GitLab
+                        withCredentials([usernamePassword(credentialsId: 'github-credentials-amir', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                            sh """
+                            git config user.name '$GITHUB_USERNAME'
+                            git config user.email 'amundeadz@yahoo.com'
+                            git remote set-url origin https://$GITHUB_USERNAME:$GITHUB_PASSWORD@${params.GIT_URL.replace('https://', '')}
+                            git add ${PATH_YAML}
+                            git commit -m "Update image in YAML to ${env.IMAGE_NAME_HARBOR}@${DOCKER_DIGEST}" || echo "No changes to commit."
+                            git push origin main || echo "Nothing to push."
+                            """
+                        }
                     }
                 }
             }
