@@ -1,12 +1,14 @@
 //Pipeline by Amir@Mindef v1.00
 
 pipeline {
-    agent any
-    
+    agent {
+        label 'docker-jenkins-agent'
+    }
+
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
-        HARBOR_PROJECT = 'nginxhelloworld'  // Harbor project where image will be pushed
-        HARBOR_IMAGE = 'nginxhelloworld'
+        HARBOR_PROJECT = 'testing-app'  // Harbor project where image will be pushed
+        HARBOR_IMAGE = 'win-php'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
         TAG = 'v1.01'  // Tag for the Docker image
         DOCKERFILE_LOCATION = './Dockerfile'     // Dockerfile in root location './tot/lab-01/Dockerfile'

@@ -2,7 +2,7 @@
 
 pipeline {
     agent any
-
+    
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
         HARBOR_PROJECT = 'nginxhelloworld'  // Harbor project where image will be pushed
