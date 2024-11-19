@@ -2,7 +2,7 @@
 
 pipeline {
     agent {
-        label 'docker-jenkins-agent'
+        label 'jenkins-windows-agent-TLS'
     }
 
     environment {
