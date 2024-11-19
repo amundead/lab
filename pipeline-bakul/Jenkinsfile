@@ -1,9 +1,7 @@
 //Pipeline by Amir@Mindef v1.00
 
 pipeline {
-    agent {
-        label 'jenkins-windows-agent-TLS'
-    }
+    agent any
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'  // Harbor registry URL
