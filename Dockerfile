@@ -19,7 +19,7 @@ RUN setx /M PATH "%PATH%;C:\php" && \
 RUN powershell -Command \
     Import-Module WebAdministration; \
     Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP_via_FastCGI'; path='*'; verb='GET,HEAD,POST'; modules='FastCgiModule'; scriptProcessor='C:\php\php-cgi.exe'; resourceType='Either'}; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:\php\php-cgi.exe'}
+    New-ItemProperty -Path 'MACHINE/WEBROOT/APPHOST/system.webServer/fastCgi' -Name '.' -Value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200}
 
 # Add Hello World PHP script
 RUN powershell -Command \
