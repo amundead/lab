@@ -22,7 +22,7 @@ RUN powershell -Command \
 
 # Add Hello World PHP script
 RUN powershell -Command \
-    Set-Content -Path "C:\inetpub\wwwroot\index.php" -Value "<?php echo 'Hello, World!'; ?>"
+    Set-Content -Path "C:\inetpub\wwwroot\index.php" -Value "'<?php echo \\'Hello, World!\\'; ?>'"
 
 # Expose port 80
 EXPOSE 80
