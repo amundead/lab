@@ -1,4 +1,4 @@
-//Pipeline by Amir@Mindef v1.00
+//Pipeline for Windows Node by Amir@Mindef v1.00
 
 pipeline {
     agent {
