@@ -6,7 +6,7 @@ RUN dism.exe /online /enable-feature /all /featurename:IIS-WebServer /NoRestart
 
 # Install PHP
 RUN powershell -Command \
-    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.2.0-Win32-vs16-x64.zip" -OutFile "php.zip" ; \
+    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip" -OutFile "php.zip" ; \
     Expand-Archive -Path php.zip -DestinationPath C:\php ; \
     Remove-Item -Force php.zip ; \
     setx PATH "%PATH%;C:\php"
