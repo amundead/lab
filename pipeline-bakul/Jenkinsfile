@@ -59,7 +59,7 @@ pipeline {
             steps {
                 script {
                     // Remove unused Docker images to free up space
-                    sh "docker rmi ${IMAGE_NAME_HARBOR}:${TAG}"
+                    bat "docker rmi ${IMAGE_NAME_HARBOR}:${TAG}"
                 }
             }
         }
