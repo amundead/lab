@@ -15,16 +15,19 @@ RUN powershell -Command \
 RUN setx /M PATH "%PATH%;C:\php" && \
     powershell -Command $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine)
 
-# Configure IIS FastCGI
+# Configure FastCGI for PHP
 RUN powershell -Command \
     Import-Module WebAdministration; \
     Remove-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'} -ErrorAction SilentlyContinue; \
-    Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
+    Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}
+
+# Configure PHP handler mapping
+RUN powershell -Command \
+    Import-Module WebAdministration; \
     Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP_via_FastCGI'; path='*.php'; verb='*'; modules='FastCgiModule'; scriptProcessor='C:\php\php-cgi.exe'; resourceType='Either'}
 
-# Ensure PHP directory and executable have correct permissions
-RUN icacls "C:\php" /grant "IIS_IUSRS:(OI)(CI)RX" /T && \
-    icacls "C:\php\php-cgi.exe" /grant "IIS_IUSRS:(OI)(CI)RX"
+# Ensure PHP CGI has correct permissions
+RUN icacls "C:\php\php-cgi.exe" /grant "IIS_IUSRS:(RX)"
 
 # Verify PHP CGI binary exists
 RUN powershell -Command \
