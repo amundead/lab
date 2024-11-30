@@ -29,8 +29,10 @@ RUN icacls "C:\php" /grant "IIS_IUSRS:(OI)(CI)RX" /T
 # Enable PHP logging
 RUN powershell -Command \
     New-Item -ItemType Directory -Path C:\php\logs -Force; \
-    "[System.IO.File]::WriteAllText('C:\\php\\logs\\php.log', '')"; \
-    (Get-Content 'C:\php\php.ini') -replace ';error_log = syslog', 'error_log = C:\\php\\logs\\php.log' | Set-Content 'C:\php\php.ini'
+    [System.IO.File]::WriteAllText('C:\\php\\logs\\php.log', ''); \
+    $content = Get-Content 'C:\php\php.ini'; \
+    $content = $content -replace ';error_log = syslog', 'error_log = C:\\php\\logs\\php.log'; \
+    [System.IO.File]::WriteAllText('C:\\php\\php.ini', $content)
 
 # Add Hello World PHP script
 RUN powershell -Command \
