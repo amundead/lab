@@ -3,7 +3,8 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 # Install IIS and CGI
 RUN dism.exe /online /enable-feature /all /featurename:IIS-WebServer /NoRestart && \
-    dism.exe /online /enable-feature /all /featurename:IIS-CGI /NoRestart
+    dism.exe /online /enable-feature /all /featurename:IIS-CGI /NoRestart && \
+    dism.exe /online /enable-feature /all /featurename:IIS-WebServerManagementTools /NoRestart
 
 # Install PHP
 RUN powershell -Command \
@@ -18,7 +19,11 @@ RUN setx /M PATH "%PATH%;C:\php" && \
 # Configure FastCGI for PHP
 RUN powershell -Command \
     Import-Module WebAdministration; \
-    Remove-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'} -ErrorAction SilentlyContinue; \
+    if (Get-Command Remove-WebConfiguration -ErrorAction SilentlyContinue) { \
+        Remove-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'} -ErrorAction SilentlyContinue; \
+    } else { \
+        Write-Host 'Remove-WebConfiguration cmdlet not found'; \
+    } \
     Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}
 
 # Configure PHP handler mapping
