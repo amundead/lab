@@ -15,32 +15,28 @@ RUN powershell -Command \
 RUN setx /M PATH "%PATH%;C:\php" && \
     powershell -Command $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine)
 
-# Configure IIS FastCGI and handlers
+# Configure IIS FastCGI
 RUN powershell -Command \
     Import-Module WebAdministration; \
-    if (-Not (Get-WebConfiguration -filter 'system.webServer/fastCgi/application' -name '.' -value @{fullPath='C:\php\php-cgi.exe'})) { \
-        Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
-    }; \
+    Remove-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'} -ErrorAction SilentlyContinue; \
+    Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
     Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP_via_FastCGI'; path='*.php'; verb='*'; modules='FastCgiModule'; scriptProcessor='C:\php\php-cgi.exe'; resourceType='Either'}
 
 # Ensure PHP directory and executable have correct permissions
-RUN icacls "C:\php" /grant "IIS_IUSRS:(OI)(CI)RX" /T
+RUN icacls "C:\php" /grant "IIS_IUSRS:(OI)(CI)RX" /T && \
+    icacls "C:\php\php-cgi.exe" /grant "IIS_IUSRS:(OI)(CI)RX"
 
-# Enable PHP logging
+# Verify PHP CGI binary exists
 RUN powershell -Command \
-    New-Item -ItemType Directory -Path C:\php\logs -Force; \
-    [System.IO.File]::WriteAllText('C:\\php\\logs\\php.log', ''); \
-    $content = Get-Content 'C:\php\php.ini'; \
-    $content = $content -replace ';error_log = syslog', 'error_log = C:\\php\\logs\\php.log'; \
-    [System.IO.File]::WriteAllText('C:\\php\\php.ini', $content)
-
-# Add Hello World PHP script
-RUN powershell -Command \
-    "[System.IO.File]::WriteAllText('C:\\inetpub\\wwwroot\\index.php', '<?php phpinfo(); ?>')"
+    if (!(Test-Path -Path 'C:\php\php-cgi.exe')) { throw 'PHP CGI binary not found at C:\php\php-cgi.exe'; }
 
 # Enable detailed IIS errors
 RUN powershell -Command \
     Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/httpErrors' -name 'errorMode' -value 'Detailed'
+
+# Add Hello World PHP script
+RUN powershell -Command \
+    "[System.IO.File]::WriteAllText('C:\\inetpub\\wwwroot\\index.php', '<?php phpinfo(); ?>')"
 
 # Expose port 80
 EXPOSE 80
