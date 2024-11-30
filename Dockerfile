@@ -1,52 +1,29 @@
-# Use the Windows Server Core 2019 as the base image
+# Use Windows Server Core as base image
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Install IIS and CGI
-RUN dism.exe /online /enable-feature /all /featurename:IIS-WebServer /NoRestart && \
-    dism.exe /online /enable-feature /all /featurename:IIS-CGI /NoRestart
+# Set environment variables for PHP installation
+ENV PHP_VERSION 7.4.3
+ENV PHP_HOME C:\PHP
 
-# Install PHP
+# Install IIS and necessary components
 RUN powershell -Command \
-    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip" -OutFile "php.zip"; \
-    Expand-Archive -Path php.zip -DestinationPath C:\php; \
-    Remove-Item -Force php.zip
+    Install-WindowsFeature Web-Server, Web-Ftp-Server, Web-WebServer, Web-ISAPI-Ext, Web-ISAPI-Filter; \
+    # Install PHP from the official Windows PHP binaries
+    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${env:PHP_VERSION}-nts-Win32-vc15-x64.zip -OutFile C:\php.zip; \
+    Expand-Archive C:\php.zip -DestinationPath C:\; \
+    Rename-Item -Path C:\php-${env:PHP_VERSION}-nts-Win32-vc15-x64 -NewName PHP; \
+    # Configure IIS to use FastCGI for PHP
+    Set-ItemProperty -Path "HKLM:\Software\Microsoft\InetStp" -Name "FastCgiModule" -Value "C:\PHP\php-cgi.exe"; \
+    # Configure IIS to use PHP for .php files via FastCGI
+    New-ItemProperty -Path "HKLM:\Software\Microsoft\InetStp\Handlers" -Name ".php" -Value "FastCgiModule" -PropertyType String; \
+    # Clean up
+    Remove-Item -Force C:\php.zip
 
-# Set PHP path for current session and globally
-RUN setx /M PATH "%PATH%;C:\php" && \
-    powershell -Command $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine)
-
-# Configure FastCGI for PHP and check for existing configuration
-RUN powershell -Command \
-    Import-Module WebAdministration; \
-    $fastCgiApp = Get-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' | Select-Object -First 1; \
-    if ($fastCgiApp -and $fastCgiApp.fullPath -eq 'C:\php\php-cgi.exe') { \
-        Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -name 'fullPath' -value 'C:\php\php-cgi.exe'; \
-    } else { \
-        Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
-    }
-
-# Configure PHP handler mapping
-RUN powershell -Command \
-    Import-Module WebAdministration; \
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP_via_FastCGI'; path='*.php'; verb='*'; modules='FastCgiModule'; scriptProcessor='C:\php\php-cgi.exe'; resourceType='Either'}
-
-# Ensure PHP CGI has correct permissions
-RUN icacls "C:\php\php-cgi.exe" /grant "IIS_IUSRS:(RX)"
-
-# Verify PHP CGI binary exists
-RUN powershell -Command \
-    if (!(Test-Path -Path 'C:\php\php-cgi.exe')) { throw 'PHP CGI binary not found at C:\php\php-cgi.exe'; }
-
-# Enable detailed IIS errors
-RUN powershell -Command \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/httpErrors' -name 'errorMode' -value 'Detailed'
-
-# Add Hello World PHP script
-RUN powershell -Command \
-    "[System.IO.File]::WriteAllText('C:\\inetpub\\wwwroot\\index.php', '<?php phpinfo(); ?>')"
-
-# Expose port 80
+# Expose port 80 for IIS
 EXPOSE 80
 
-# Start IIS
-CMD ["powershell", "-Command", "Start-Service W3SVC; while ($true) { Start-Sleep -Seconds 3600; }"]
+# Set up a simple PHP "Hello World" file
+RUN echo "<?php echo 'Hello, World!'; ?>" > C:\inetpub\wwwroot\index.php
+
+# Set the default entrypoint to start IIS
+CMD ["powershell", "-Command", "Start-Service w3svc; Wait-Event -Timeout 86400"]
