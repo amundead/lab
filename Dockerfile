@@ -9,9 +9,9 @@ ENV PHP_HOME C:\PHP
 RUN powershell -Command \
     Install-WindowsFeature Web-Server, Web-Ftp-Server, Web-WebServer, Web-ISAPI-Ext, Web-ISAPI-Filter; \
     # Install PHP from the official Windows PHP binaries
-    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${env:PHP_VERSION}-Win32-vc17-x64.zip -OutFile C:\php.zip; \
+    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${env:PHP_VERSION}-Win32-vs17-x64.zip -OutFile C:\php.zip; \
     Expand-Archive C:\php.zip -DestinationPath C:\; \
-    Rename-Item -Path C:\php-${env:PHP_VERSION}-Win32-vc17-x64 -NewName PHP; \
+    Rename-Item -Path C:\php-${env:PHP_VERSION}-Win32-vs17-x64 -NewName PHP; \
     # Configure IIS to use FastCGI for PHP
     Set-ItemProperty -Path "HKLM:\Software\Microsoft\InetStp" -Name "FastCgiModule" -Value "C:\PHP\php-cgi.exe"; \
     # Configure IIS to use PHP for .php files via FastCGI
