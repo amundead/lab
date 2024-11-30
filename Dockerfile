@@ -2,14 +2,14 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 # Set environment variables for PHP installation
-ENV PHP_VERSION 7.4.3
+
 ENV PHP_HOME C:\PHP
 
 # Install IIS and necessary components
 RUN powershell -Command \
     Install-WindowsFeature Web-Server, Web-Ftp-Server, Web-WebServer, Web-ISAPI-Ext, Web-ISAPI-Filter; \
     # Install PHP from the official Windows PHP binaries
-    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${env:PHP_VERSION}-nts-Win32-vc15-x64.zip -OutFile C:\php.zip; \
+    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip -OutFile C:\php.zip; \
     Expand-Archive C:\php.zip -DestinationPath C:\; \
     Rename-Item -Path C:\php-${env:PHP_VERSION}-nts-Win32-vc15-x64 -NewName PHP; \
     # Configure IIS to use FastCGI for PHP
