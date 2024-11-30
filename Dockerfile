@@ -16,15 +16,16 @@ RUN powershell -Command \
 RUN setx /M PATH "%PATH%;C:\php" && \
     powershell -Command $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine)
 
-# Configure FastCGI for PHP
+# Configure FastCGI for PHP without the Remove-WebConfiguration step
 RUN powershell -Command \
     Import-Module WebAdministration; \
-    if (Get-Command Remove-WebConfiguration -ErrorAction SilentlyContinue) { \
-        Remove-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'} -ErrorAction SilentlyContinue; \
+    # Add or update the FastCGI configuration for PHP
+    $fastCgiApp = Get-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' | Where-Object { $_.fullPath -eq 'C:\php\php-cgi.exe' }; \
+    if ($fastCgiApp) { \
+        Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -name 'fullPath' -value 'C:\php\php-cgi.exe'; \
     } else { \
-        Write-Host 'Remove-WebConfiguration cmdlet not found'; \
-    } \
-    Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}
+        Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
+    }
 
 # Configure PHP handler mapping
 RUN powershell -Command \
