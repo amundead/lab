@@ -24,8 +24,7 @@ EXPOSE 80
 # Set up a simple PHP "Hello World" file
 RUN powershell -Command \
     New-Item -Path C:\inetpub\wwwroot -ItemType Directory -Force; \
-    # Use Out-File to correctly write PHP content to a file
-    "<?php echo 'Hello, World!'; ?>" | Out-File -FilePath C:\inetpub\wwwroot\index.php -Encoding ASCII
+    Set-Content -Path C:\inetpub\wwwroot\index.php -Value "<?php echo 'Hello, World!'; ?>" -Encoding utf8
 
 # Set the default entrypoint to start IIS
 CMD ["powershell", "-Command", "Start-Service w3svc; Wait-Event -Timeout 86400"]
