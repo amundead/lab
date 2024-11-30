@@ -24,7 +24,9 @@ RUN powershell -Command \
 # Configure PHP
 RUN powershell -Command \
     Copy-Item -Path "C:\\php\\php.ini-production" -Destination "C:\\php\\php.ini"; \
-    (Get-Content "C:\\php\\php.ini") -replace ';cgi.fix_pathinfo=1', 'cgi.fix_pathinfo=1' | Set-Content "C:\\php\\php.ini"
+    $content = Get-Content "C:\\php\\php.ini"; \
+    $content = $content -replace ';cgi.fix_pathinfo=1', 'cgi.fix_pathinfo=1'; \
+    [System.IO.File]::WriteAllText('C:\\php\\php.ini', $content)
 
 # Add Hello World PHP script
 RUN powershell -Command \
