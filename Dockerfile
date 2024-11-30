@@ -15,19 +15,22 @@ RUN powershell -Command \
 RUN setx /M PATH "%PATH%;C:\php" && \
     powershell -Command $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine)
 
-# Configure IIS to handle PHP
+# Configure IIS FastCGI and handlers
 RUN powershell -Command \
     Import-Module WebAdministration; \
+    if (-Not (Get-WebConfiguration -filter 'system.webServer/fastCgi/application' -name '.' -value @{fullPath='C:\php\php-cgi.exe'})) { \
+        Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
+    }; \
     Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP_via_FastCGI'; path='*.php'; verb='*'; modules='FastCgiModule'; scriptProcessor='C:\php\php-cgi.exe'; resourceType='Either'}
 
-# Ensure PHP-CGI exists
-RUN powershell -Command \
-    if (!(Test-Path -Path 'C:\php\php-cgi.exe')) { throw 'PHP CGI binary not found at C:\php\php-cgi.exe'; }
+# Ensure PHP directory and executable have correct permissions
+RUN icacls "C:\php" /grant "IIS_IUSRS:(OI)(CI)RX" /T
 
-# Reconfigure IIS App Pool
+# Enable PHP logging
 RUN powershell -Command \
-    Import-Module WebAdministration; \
-    Set-ItemProperty IIS:\AppPools\DefaultAppPool -Name managedPipelineMode -Value Classic
+    New-Item -ItemType Directory -Path C:\php\logs -Force; \
+    "[System.IO.File]::WriteAllText('C:\\php\\logs\\php.log', '')"; \
+    (Get-Content 'C:\php\php.ini') -replace ';error_log = syslog', 'error_log = C:\\php\\logs\\php.log' | Set-Content 'C:\php\php.ini'
 
 # Add Hello World PHP script
 RUN powershell -Command \
