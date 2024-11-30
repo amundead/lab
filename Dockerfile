@@ -3,8 +3,7 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 # Install IIS and CGI
 RUN dism.exe /online /enable-feature /all /featurename:IIS-WebServer /NoRestart && \
-    dism.exe /online /enable-feature /all /featurename:IIS-CGI /NoRestart && \
-    dism.exe /online /enable-feature /all /featurename:IIS-WebServerManagementTools /NoRestart
+    dism.exe /online /enable-feature /all /featurename:IIS-CGI /NoRestart
 
 # Install PHP
 RUN powershell -Command \
@@ -16,10 +15,9 @@ RUN powershell -Command \
 RUN setx /M PATH "%PATH%;C:\php" && \
     powershell -Command $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::Machine)
 
-# Configure FastCGI for PHP without the Remove-WebConfiguration step
+# Configure FastCGI for PHP and check for existing configuration
 RUN powershell -Command \
     Import-Module WebAdministration; \
-    # Add or update the FastCGI configuration for PHP
     $fastCgiApp = Get-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' | Where-Object { $_.fullPath -eq 'C:\php\php-cgi.exe' }; \
     if ($fastCgiApp) { \
         Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -name 'fullPath' -value 'C:\php\php-cgi.exe'; \
