@@ -18,8 +18,8 @@ RUN setx /M PATH "%PATH%;C:\php" && \
 # Configure FastCGI for PHP and check for existing configuration
 RUN powershell -Command \
     Import-Module WebAdministration; \
-    $fastCgiApp = Get-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' | Where-Object { $_.fullPath -eq 'C:\php\php-cgi.exe' }; \
-    if ($fastCgiApp) { \
+    $fastCgiApp = Get-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' | Select-Object -First 1; \
+    if ($fastCgiApp -and $fastCgiApp.fullPath -eq 'C:\php\php-cgi.exe') { \
         Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -name 'fullPath' -value 'C:\php\php-cgi.exe'; \
     } else { \
         Add-WebConfiguration -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application' -value @{fullPath='C:\php\php-cgi.exe'; instanceMaxRequests=200; activityTimeout=600; requestTimeout=600}; \
