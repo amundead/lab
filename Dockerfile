@@ -1,29 +1,25 @@
 # Base image
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Install IIS and Management Tools
+# Install IIS and required components
 RUN powershell -Command \
-    Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Static-Content, Web-Scripting-Tools; \
-    Install-WindowsFeature -Name Web-CGI
+    Install-WindowsFeature -Name Web-Server, Web-CGI, Web-Static-Content, Web-Scripting-Tools
 
-# Download and Install PHP
-ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip /php.zip
+# Download and install PHP
+ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip C:\php.zip
 RUN powershell -Command \
-    Expand-Archive -Path /php.zip -DestinationPath C:\php; \
-    Remove-Item -Force /php.zip; \
+    Expand-Archive -Path C:\php.zip -DestinationPath C:\php; \
+    Remove-Item -Force C:\php.zip; \
     [Environment]::SetEnvironmentVariable('Path', $Env:Path + ';C:\php', [EnvironmentVariableTarget]::Machine)
 
-# Configure IIS to use PHP with FastCGI
+# Configure IIS to use PHP
 RUN powershell -Command \
-    Import-Module WebAdministration; \
-    New-WebAppPool -Name PHPAppPool; \
-    Set-ItemProperty 'IIS:\AppPools\PHPAppPool' -Name enable32BitAppOnWin64 -Value True; \
-    Add-Website -Name "Default Web Site" -PhysicalPath 'C:\inetpub\wwwroot' -ApplicationPool PHPAppPool -Force; \
-    & C:\windows\system32\inetsrv\appcmd.exe set config /section:handlers /+[name='PHP',path='*',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='C:\php\php-cgi.exe',resourceType='Unspecified']; \
-    & C:\windows\system32\inetsrv\appcmd.exe set config /section:fastCgi /+[fullPath='C:\php\php-cgi.exe',arguments='']
+    & C:\windows\system32\inetsrv\appcmd.exe add site /name:"Default Web Site" /bindings:http/*:80: /physicalPath:"C:\inetpub\wwwroot"; \
+    & C:\windows\system32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+"[name='PHP',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='C:\php\php-cgi.exe',resourceType='File']"; \
+    & C:\windows\system32\inetsrv\appcmd.exe set config /section:system.webServer/fastCgi /+[fullPath='C:\php\php-cgi.exe']
 
 # Expose port 80
 EXPOSE 80
 
-# Copy index.php to IIS root
+# Copy PHP application to the IIS root
 COPY index.php C:/inetpub/wwwroot/index.php
