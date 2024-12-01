@@ -20,7 +20,7 @@ RUN powershell -Command \
     Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; \
     Remove-Item -Force php.zip
 
-# Configure IIS to use PHP
+# Configure IIS to use PHP (create and configure PHP handler)
 RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Value 'C:\\inetpub\\wwwroot' >> C:\\setup.ps1; \
     echo New-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name scriptProcessor -Value '%PHP_DIR%\\php-cgi.exe' -PropertyType String >> C:\\setup.ps1; \
     echo New-WebHandler -PSPath 'IIS:\\' -Name 'PHP' -Type 'System.Web.DefaultHttpHandler' -Verb '*' -Path '*.php' -Modules 'FastCgiModule' -ScriptProcessor '%PHP_DIR%\\php-cgi.exe' >> C:\\setup.ps1; \
