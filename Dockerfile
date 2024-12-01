@@ -29,12 +29,12 @@ RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Va
     echo New-WebHandler -PSPath 'IIS:\\' -Name 'PHP' -Type 'System.Web.DefaultHttpHandler' -Verb '*' -Path '*.php' -Modules 'FastCgiModule' -ScriptProcessor '%PHP_DIR%\\php-cgi.exe' >> C:\\setup.ps1; \
     powershell -ExecutionPolicy Bypass -File C:\\setup.ps1; \
     Remove-Item C:\\setup.ps1
-    
-# Copy the web.config to configure PHP handling for your site
-COPY web.config C:\inetpub\wwwroot\web.config
 
 # Copy the index.php file into the IIS folder
 COPY index.php C:\\inetpub\\wwwroot\\index.php
+
+# Copy the web.config file for PHP handling
+COPY web.config C:\\inetpub\\wwwroot\\web.config
 
 # Expose port 80 for IIS
 EXPOSE 80
