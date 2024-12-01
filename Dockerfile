@@ -1,35 +1,33 @@
-# Use the Windows LTSC 2019 image
-FROM mcr.microsoft.com/windows:ltsc2019
+# Use Windows NanoServer LTSC2019 as the base image
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2019
 
-# Define environment variables for PHP installation
-ENV PHP_URL=https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip
-ENV PHP_ZIP=php-8.4.1-nts-Win32-vs17-x64.zip
-ENV PHP_DIR=C:\php
+# Set environment variables
+ENV PHP_VERSION=8.4.1 \
+    PHP_DOWNLOAD_URL=https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip \
+    PHP_DIR="C:\\php"
 
-# Install IIS and necessary features
+# Install IIS
 RUN powershell -Command \
-    Install-WindowsFeature -name Web-Server -IncludeManagementTools; \
-    Install-WindowsFeature -name Web-Scripting-Tools; \
-    Install-WindowsFeature -name Web-Dyn-Compression;
+    Install-WindowsFeature -name Web-Server; \
+    Install-WindowsFeature -name Web-Common-Http; \
+    Install-WindowsFeature -name Web-WebServer
 
-# Download and extract PHP
+# Download and install PHP
 RUN powershell -Command \
-    Invoke-WebRequest -Uri %PHP_URL% -OutFile %PHP_ZIP%; \
-    Expand-Archive -Path %PHP_ZIP% -DestinationPath %PHP_DIR%; \
-    Remove-Item -Path %PHP_ZIP%
+    Invoke-WebRequest -Uri %PHP_DOWNLOAD_URL% -OutFile php.zip; \
+    Expand-Archive -Path php.zip -DestinationPath %PHP_DIR%; \
+    Remove-Item -Force php.zip
 
 # Configure IIS to use PHP
 RUN powershell -Command \
     Import-Module WebAdministration; \
-    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name bindings -Value @{protocol="http"; bindingInformation=":80:"}; \
-    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name physicalPath -Value "C:\inetpub\wwwroot"; \
-    New-WebHandler -Name "PHP_via_FastCGI" -Path "*.php" -Verb "*" -Modules "FastCgiModule" -ScriptProcessor "%PHP_DIR%\php-cgi.exe";
+    Set-ItemProperty 'IIS:\Sites\Default Web Site' -Name physicalPath -Value C:\inetpub\wwwroot; \
+    New-ItemProperty 'IIS:\Sites\Default Web Site' -Name scriptProcessor -Value '%PHP_DIR%\php-cgi.exe' -PropertyType String; \
+    New-Item -Type Directory -Path C:\inetpub\wwwroot\phpinfo; \
+    New-WebHandler -PSPath 'IIS:\' -Name 'PHP' -Type 'System.Web.DefaultHttpHandler' -Verb '*' -Path '*.php' -Modules 'FastCgiModule' -ScriptProcessor '%PHP_DIR%\php-cgi.exe'
 
-# Copy index.php to IIS root folder
-COPY index.php C:/inetpub/wwwroot/
-
-# Expose port 80 for HTTP traffic
+# Expose port 80 for IIS
 EXPOSE 80
 
-# Start IIS
-CMD ["cmd", "/c", "iisreset", "/start", "&&", "ping", "-t", "localhost"]
+# Set IIS as the entry point
+ENTRYPOINT ["powershell", "Start-Service", "w3svc", ";", "Wait-Event"]
