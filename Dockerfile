@@ -6,8 +6,8 @@ RUN powershell -Command \
     Install-WindowsFeature -Name Web-Server, Web-CGI, Web-Static-Content, Web-Scripting-Tools
 
 # Download and install PHP
-ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip C:\php.zip
 RUN powershell -Command \
+    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip" -OutFile "C:\php.zip"; \
     Expand-Archive -Path C:\php.zip -DestinationPath C:\php; \
     Remove-Item -Force C:\php.zip; \
     [Environment]::SetEnvironmentVariable('Path', $Env:Path + ';C:\php', [EnvironmentVariableTarget]::Machine)
