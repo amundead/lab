@@ -1,30 +1,31 @@
+# Specify the base image
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Set environment variables for PHP installation
-ENV PHP_HOME C:\PHP
-
-# Install IIS and necessary components
+# Install IIS
 RUN powershell -Command \
-    Install-WindowsFeature Web-Server, Web-ISAPI-Ext, Web-ISAPI-Filter; \
-    # Install PHP 8.4.1 from the official Windows PHP binaries
-    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip -OutFile C:\php.zip; \
-    Expand-Archive C:\php.zip -DestinationPath C:\ -Force; \
-    Rename-Item -Path C:\php-8.4.1-Win32-vs17-x64 -NewName PHP; \
-    # Ensure registry path exists for FastCGI configuration
-    if (-not (Test-Path "HKLM:\Software\Microsoft\InetStp\Handlers")) { \
-        New-Item -Path "HKLM:\Software\Microsoft\InetStp" -Name "Handlers"; \
-    }; \
-    New-ItemProperty -Path "HKLM:\Software\Microsoft\InetStp\Handlers" -Name ".php" -Value "FastCgiModule" -PropertyType String; \
-    # Clean up
-    Remove-Item -Force C:\php.zip
+    Install-WindowsFeature -name Web-Server; \
+    Install-WindowsFeature -name Web-Asp-Net45; \
+    Install-WindowsFeature -name Web-Static-Content
 
-# Expose port 80 for IIS
+# Install PHP
+ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip /php.zip
+RUN powershell -Command \
+    Expand-Archive -Path /php.zip -DestinationPath C:\php; \
+    Remove-Item -Force /php.zip; \
+    [Environment]::SetEnvironmentVariable('Path', $Env:Path + ';C:\php', [EnvironmentVariableTarget]::Machine)
+
+# Configure IIS to use FastCGI with PHP
+RUN powershell -Command \
+    Import-Module WebAdministration; \
+    New-WebAppPool -Name PHPAppPool; \
+    Set-ItemProperty 'IIS:\AppPools\PHPAppPool' -Name enable32BitAppOnWin64 -Value True; \
+    Add-WebSite -Name "Default Web Site" -PhysicalPath 'C:\inetpub\wwwroot' -Force; \
+    Remove-WebHandler -Path "*" -Name "CGI-exe"; \
+    Add-WebHandler -Path "*" -Name "PHP" -ModuleName "FastCgiModule" -Executable "C:\php\php-cgi.exe"; \
+    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers/add[@name="PHP"]' -name 'resourceType' -value 'Unspecified'
+
+# Expose port 80
 EXPOSE 80
 
-# Set up a simple PHP "Hello World" file
-RUN powershell -Command \
-    New-Item -Path C:\inetpub\wwwroot -ItemType Directory -Force; \
-    Set-Content -Path C:\inetpub\wwwroot\index.php -Value '<?php echo "Hello, World!"; ?>' -Encoding utf8
-
-# Set the default entrypoint to start IIS
-CMD ["powershell", "-Command", "Start-Service w3svc; Wait-Event -Timeout 86400"]
+# Copy index.php to the IIS root
+COPY index.php C:/inetpub/wwwroot/index.php
