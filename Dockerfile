@@ -27,6 +27,9 @@ RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Va
     powershell -ExecutionPolicy Bypass -File C:\\setup.ps1; \
     Remove-Item C:\\setup.ps1
 
+# Copy the index.php file into the IIS folder
+COPY index.php C:\\inetpub\\wwwroot\\index.php
+
 # Expose port 80 for IIS
 EXPOSE 80
 
