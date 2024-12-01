@@ -14,9 +14,11 @@ RUN powershell -Command \
 
 # Configure IIS to use PHP
 RUN powershell -Command \
-    & C:\windows\system32\inetsrv\appcmd.exe add site /name:"Default Web Site" /bindings:http/*:80: /physicalPath:"C:\inetpub\wwwroot"; \
-    & C:\windows\system32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+"[name='PHP',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='C:\php\php-cgi.exe',resourceType='File']"; \
-    & C:\windows\system32\inetsrv\appcmd.exe set config /section:system.webServer/fastCgi /+[fullPath='C:\php\php-cgi.exe']
+    "& { \
+        C:\windows\system32\inetsrv\appcmd.exe add site /name:'Default Web Site' /bindings:http/*:80: /physicalPath:'C:\inetpub\wwwroot'; \
+        C:\windows\system32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+\"[name='PHP',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='C:\php\php-cgi.exe',resourceType='File']\"; \
+        C:\windows\system32\inetsrv\appcmd.exe set config /section:system.webServer/fastCgi /+[fullPath='C:\php\php-cgi.exe']; \
+    }"
 
 # Expose port 80
 EXPOSE 80
