@@ -20,6 +20,9 @@ RUN powershell -Command \
     Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; \
     Remove-Item -Force php.zip
 
+# Copy custom applicationHost.config to allow handler overrides
+COPY applicationHost.config C:\\Windows\\System32\\inetsrv\\config\\applicationHost.config
+
 # Configure IIS to use PHP
 RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Value 'C:\\inetpub\\wwwroot' >> C:\\setup.ps1; \
     echo New-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name scriptProcessor -Value '%PHP_DIR%\\php-cgi.exe' -PropertyType String >> C:\\setup.ps1; \
@@ -29,9 +32,6 @@ RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Va
 
 # Copy the index.php file into the IIS folder
 COPY index.php C:\\inetpub\\wwwroot\\index.php
-
-# Copy the web.config file for PHP handling
-COPY web.config C:\\inetpub\\wwwroot\\web.config
 
 # Expose port 80 for IIS
 EXPOSE 80
