@@ -11,7 +11,7 @@ RUN powershell -Command \
     Invoke-WebRequest -Uri $env:NODE_DIST_URL -OutFile nodejs.zip; \
     Expand-Archive -Path nodejs.zip -DestinationPath $env:NODE_HOME; \
     Remove-Item nodejs.zip; \
-    $env:Path = "$env:PATH;$env:NODE_HOME"; \
+    $env:Path = "$env:Path;$env:NODE_HOME"; \
     [System.Environment]::SetEnvironmentVariable('Path', $env:Path, [System.EnvironmentVariableTarget]::Machine)
 
 # Set the working directory in the container
@@ -23,18 +23,18 @@ COPY index.html /app/index.html
 # Expose port 80
 EXPOSE 80
 
-# Start a simple Node.js HTTP server to serve the index.html file
+# Start a simple HTTP server to serve the index.html file using PowerShell
 CMD powershell -Command \
     $server = New-Object System.Net.HttpListener; \
-    $server.Prefixes.Add("http://+:80/"); \
+    $server.Prefixes.Add('http://+:80/'); \
     $server.Start(); \
     while ($true) { \
         $context = $server.GetContext(); \
         $response = $context.Response; \
-        $response.ContentType = "text/html"; \
+        $response.ContentType = 'text/html'; \
         $response.StatusCode = 200; \
         $response.ContentEncoding = [System.Text.Encoding]::UTF8; \
-        $response.OutputStream.Write([System.IO.File]::ReadAllBytes("index.html"), 0, [System.IO.File]::ReadAllBytes("index.html").Length); \
+        $indexFile = 'C:/app/index.html'; \
+        $response.OutputStream.Write([System.IO.File]::ReadAllBytes($indexFile), 0, [System.IO.File]::ReadAllBytes($indexFile).Length); \
         $response.OutputStream.Close(); \
     }
-
