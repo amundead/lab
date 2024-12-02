@@ -1,22 +1,16 @@
 # Dockerfile
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Set environment variables for installation paths
-ENV NGINX_VERSION=1.27.3
-ENV PHP_VERSION=8.4.1
-
-# Install tools, download, and set up Nginx
+# Install tools, download, and set up Nginx (Windows binary)
 RUN powershell -Command \
-    "$nginxVersion = '${NGINX_VERSION}'; \
-    Invoke-WebRequest -Uri ('https://nginx.org/download/nginx-' + $nginxVersion + '.zip') -OutFile C:\\nginx.zip; \
+    "Invoke-WebRequest -Uri 'https://nginx.org/download/nginx-1.27.3.zip' -OutFile C:\\nginx.zip; \
     Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; \
     Remove-Item -Force C:\\nginx.zip; \
-    Rename-Item -Path ('C:\\nginx-' + $nginxVersion) -NewName C:\\nginx"
+    Rename-Item -Path 'C:\\nginx-1.27.3' -NewName 'C:\\nginx'"
 
 # Install tools, download, and set up PHP
 RUN powershell -Command \
-    "$phpVersion = '${PHP_VERSION}'; \
-    Invoke-WebRequest -Uri ('https://windows.php.net/downloads/releases/php-' + $phpVersion + '-Win32-vs17-x64.zip') -OutFile C:\\php.zip; \
+    "Invoke-WebRequest -Uri 'https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip' -OutFile C:\\php.zip; \
     Expand-Archive -Path C:\\php.zip -DestinationPath C:\\php; \
     Remove-Item -Force C:\\php.zip"
 
