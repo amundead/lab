@@ -15,33 +15,20 @@ RUN dism.exe /online /enable-feature /featurename:IIS-WebServerRole /all /norest
     dism.exe /online /enable-feature /featurename:IIS-RequestFiltering /all /norestart
 
 # Download and install PHP
-RUN powershell -Command `
-    Invoke-WebRequest -Uri $Env:PHP_DOWNLOAD_URL -OutFile php.zip; `
-    Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; `
+RUN powershell -Command \
+    Invoke-WebRequest -Uri $Env:PHP_DOWNLOAD_URL -OutFile php.zip; \
+    Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; \
     Remove-Item -Force php.zip
 
 # Configure IIS to use PHP
-RUN powershell -Command `
-    Import-Module WebAdministration; `
-    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name physicalPath -Value "C:\\inetpub\\wwwroot"; `
-    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{ `
-        fullPath="$Env:PHP_DIR\\php-cgi.exe"; `
-        instanceMaxRequests=10000; `
-        maxInstances=5 }; `
-    Add-WebConfiguration -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/handlers" -value @{ `
-        name="PHP"; `
-        path="*.php"; `
-        verb="*"; `
-        modules="FastCgiModule"; `
-        scriptProcessor="$Env:PHP_DIR\\php-cgi.exe"; `
-        resourceType="File" }
+RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Value 'C:\\inetpub\\wwwroot' >> C:\\setup.ps1; \
+    echo Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP';path='*.php';verb='*';modules='FastCgiModule';scriptProcessor='%PHP_DIR%\\php-cgi.exe';resourceType='Unspecified'} >> C:\\setup.ps1; \
+    powershell -ExecutionPolicy Bypass -File C:\\setup.ps1; \
+    Remove-Item C:\\setup.ps1
 
-# Add MIME type for PHP
-RUN powershell -Command `
-    Import-Module WebAdministration; `
-    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/staticContent" -name "." -value @{ `
-        fileExtension=".php"; `
-        mimeType="text/html" }
+# Add MIME type for PHP files
+RUN appcmd set config /section:staticContent /+[fileExtension='.php',mimeType='application/x-httpd-php']
+
 
 # Copy the index.php file into the IIS folder
 COPY index.php C:\\inetpub\\wwwroot\\index.php
@@ -49,5 +36,5 @@ COPY index.php C:\\inetpub\\wwwroot\\index.php
 # Expose port 80 for IIS
 EXPOSE 80
 
-# Start IIS and keep the container running
+# Set IIS as the entry point
 ENTRYPOINT ["cmd", "/S", "/C", "start w3svc && ping 127.0.0.1 -t"]
