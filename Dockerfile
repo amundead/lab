@@ -7,14 +7,16 @@ ENV PHP_VERSION=8.4.1
 
 # Install tools, download, and set up Nginx
 RUN powershell -Command \
-    "Invoke-WebRequest -Uri https://nginx.org/download/nginx-${NGINX_VERSION}.zip -OutFile C:\\nginx.zip; \
+    "$nginxVersion = '${NGINX_VERSION}'; \
+    Invoke-WebRequest -Uri ('https://nginx.org/download/nginx-' + $nginxVersion + '.zip') -OutFile C:\\nginx.zip; \
     Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; \
     Remove-Item -Force C:\\nginx.zip; \
-    Rename-Item -Path C:\\nginx-${NGINX_VERSION} -NewName C:\\nginx"
+    Rename-Item -Path ('C:\\nginx-' + $nginxVersion) -NewName C:\\nginx"
 
 # Install tools, download, and set up PHP
 RUN powershell -Command \
-    "Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${PHP_VERSION}-Win32-vs17-x64.zip -OutFile C:\\php.zip; \
+    "$phpVersion = '${PHP_VERSION}'; \
+    Invoke-WebRequest -Uri ('https://windows.php.net/downloads/releases/php-' + $phpVersion + '-Win32-vs17-x64.zip') -OutFile C:\\php.zip; \
     Expand-Archive -Path C:\\php.zip -DestinationPath C:\\php; \
     Remove-Item -Force C:\\php.zip"
 
