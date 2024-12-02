@@ -10,11 +10,12 @@ RUN powershell -Command \
     Remove-Item -Force 'C:\\vc_redist.x64.exe'; \
     [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\php', [System.EnvironmentVariableTarget]::Machine)
 
-# Enable IIS CGI feature
-RUN dism.exe /online /enable-feature /all /featureName:IIS-CGI
+# Enable IIS Web Server and required features
 RUN dism.exe /online /enable-feature /all /featureName:IIS-WebServerRole
-RUN dism.exe /online /enable-feature /all /featureName:IIS-ISAPI-Ext
+RUN dism.exe /online /enable-feature /all /featureName:IIS-WebServer
+RUN dism.exe /online /enable-feature /all /featureName:IIS-CGI
 RUN dism.exe /online /enable-feature /all /featureName:IIS-ISAPI-Filter
+RUN dism.exe /online /enable-feature /all /featureName:IIS-ISAPI-Ext
 
 # Install WebAdministration module for IIS management
 RUN powershell -Command \
