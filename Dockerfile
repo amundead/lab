@@ -1,38 +1,54 @@
-# Use Windows Server Core image with IIS pre-installed
-FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+# escape=`
 
-# Remove the default IIS website content
-RUN powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\inetpub\wwwroot\*"
+#
+# This Dockerfile is updated for PHP 8.2 x64 running on IIS
+#
 
-# Set working directory to IIS wwwroot
-WORKDIR C:/inetpub/wwwroot
+# Stage 1: Base Image for PHP Installation
+FROM mcr.microsoft.com/windows/servercore/iis AS php82
 
-# Download PHP zip
-ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip C:/php.zip
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
-# Install Visual C++ Redistributable (VC Redist)
-RUN powershell -Command \
-    Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "C:/vc_redist.x64.exe" ; \
-    Start-Process -Wait -FilePath "C:/vc_redist.x64.exe" -ArgumentList "/quiet" ; \
-    Remove-Item -Force "C:/vc_redist.x64.exe"
+RUN `
+    try { `
+        # Install PHP `
+        Invoke-WebRequest 'https://windows.php.net/downloads/releases/php-8.2.11-nts-Win32-vs16-x64.zip' -OutFile C:\php.zip; `
+        Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile C:\vc_redist-x64.exe; `
+        Expand-Archive -Path c:\php.zip -DestinationPath C:\PHP; `
+        `
+        # Configure PHP `
+        Copy-Item C:\PHP\php.ini-production C:\PHP\php.ini; `
+    } `
+    catch { `
+        $_.Exception; `
+        $_; `
+        exit 1; `
+    }
 
-# Enable required IIS Features
-RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All
+# Stage 2: Final Image with IIS and PHP Setup
+FROM mcr.microsoft.com/windows/servercore/iis
 
-# Configure IIS to serve PHP files
-RUN powershell -Command \
-    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\IIS\Parameters' -Name 'CGI' -Value 1 -PropertyType DWord -Force ; \
-    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\IIS\Parameters' -Name 'CgiWithScriptMaps' -Value 1 -PropertyType DWord -Force ; \
-    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\IIS\Parameters' -Name 'EnableScripting' -Value 1
+# Copy PHP and VC Redist from the previous stage
+COPY --from=php82 ["C:/PHP/", "C:/PHP/"]
+COPY --from=php82 ["C:/vc_redist-x64.exe", "C:/vc_redist-x64.exe"]
 
-# Add PHP to the system PATH
-RUN setx PATH "%PATH%;C:\php;C:\php\ext"
+# Enable IIS CGI feature and configure IIS for PHP
+RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && `
+    C:\vc_redist-x64.exe /quiet /install && `
+    del C:\vc_redist-x64.exe && `
+    %windir%\system32\inetsrv\appcmd.exe set config /section:system.webServer/fastCgi /+[fullPath='C:\PHP\php-cgi.exe'] && `
+    %windir%\system32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='C:\PHP\php-cgi.exe',resourceType='Either'] && `
+    %windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /[fullPath='C:\PHP\php-cgi.exe'].instanceMaxRequests:10000 && `
+    %windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+[fullPath='C:\PHP\php-cgi.exe'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000'] && `
+    %windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /+[fullPath='C:\PHP\php-cgi.exe'].environmentVariables.[name='PHPRC',value='C:\PHP'] && `
+    %windir%\system32\inetsrv\appcmd.exe set config /section:defaultDocument /enabled:true /+files.[value='index.php'] && `
+    setx PATH /M "%PATH%;C:\PHP" && `
+    setx PHP /M "C:\PHP" && `
+    del C:\inetpub\wwwroot\* /Q
 
-# Copy PHP files into IIS root
-COPY index.php C:/inetpub/wwwroot/index.php
+# Optional: Add a starter page
+RUN powershell.exe -Command "'<?php phpinfo(); ?>' | Out-File C:\inetpub\wwwroot\index.php -Encoding UTF8"
 
-# Expose IIS port
+# Expose port 80 for the application
 EXPOSE 80
 
-# Start IIS
-CMD ["powershell", "-NoProfile", "-Command", "Start-Service w3svc; Wait-Process w3wp"]
