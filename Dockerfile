@@ -1,51 +1,37 @@
-# Base Image
+# Use Windows Server Core LTSC2019 as the base image
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Define environment variables
-ENV PHP_VERSION=8.4.1
-ENV PHP_URL=https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip
-ENV PHP_INSTALL_DIR=C:\php
+# Set environment variables
+ENV PHP_VERSION=8.4.1 \
+    PHP_DOWNLOAD_URL=https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip \
+    PHP_DIR="C:\\php"
 
-# Download and install IIS
-RUN powershell -Command \
-    Add-WindowsFeature Web-Server,Web-WebServer,Web-Common-Http,Web-Static-Content,Web-Default-Doc,Web-Http-Errors,Web-App-Dev,Web-Asp-Net45,Web-Net-Ext45,Web-ISAPI-Ext,Web-ISAPI-Filter,Web-Health,Web-Http-Logging,Web-Performance,Web-Stat-Compression,Web-Security,Web-Filtering,Web-Mgmt-Console
+# Install IIS (via dism.exe)
+RUN dism.exe /online /enable-feature /featurename:IIS-WebServerRole /all /norestart && \
+    dism.exe /online /enable-feature /featurename:IIS-WebServerManagementTools /all /norestart && \
+    dism.exe /online /enable-feature /featurename:IIS-CommonHttpFeatures /all /norestart && \
+    dism.exe /online /enable-feature /featurename:IIS-StaticContent /all /norestart && \
+    dism.exe /online /enable-feature /featurename:IIS-WebServer /all /norestart && \
+    dism.exe /online /enable-feature /featurename:IIS-RequestFiltering /all /norestart
 
 # Download and install PHP
 RUN powershell -Command \
-    Invoke-WebRequest -Uri %PHP_URL% -OutFile C:\php.zip; \
-    Expand-Archive -Path C:\php.zip -DestinationPath %PHP_INSTALL_DIR%; \
-    Remove-Item -Force C:\php.zip
+    Invoke-WebRequest -Uri $Env:PHP_DOWNLOAD_URL -OutFile php.zip; \
+    Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; \
+    Remove-Item -Force php.zip
 
-# Configure IIS to use PHP via FastCGI
-RUN powershell -NoProfile -Command `
-    Import-Module WebAdministration; `
-    # Create Application Pool
-    New-WebAppPool -Name "PHPAppPool"; `
-    # Create PHP directory in Default Web Site
-    New-Item -Path "IIS:\Sites\Default Web Site\php" -Type Directory; `
-    # Set Application Pool for Default Web Site
-    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name applicationPool -Value "PHPAppPool"; `
-    # Add FastCGI settings for PHP
-    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{ `
-        fullPath="%PHP_INSTALL_DIR%\\php-cgi.exe"; `
-        instanceMaxRequests=10000; `
-        maxInstances=5 `
-    }; `
-    # Add handler mapping for PHP
-    Add-WebConfiguration -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/handlers" -value @{ `
-        name="php"; `
-        path="*.php"; `
-        verb="*"; `
-        modules="FastCgiModule"; `
-        scriptProcessor="%PHP_INSTALL_DIR%\\php-cgi.exe"; `
-        resourceType="File" `
-    }
+# Configure IIS to use PHP
+RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Value 'C:\\inetpub\\wwwroot' >> C:\\setup.ps1; \
+    echo New-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name scriptProcessor -Value '%PHP_DIR%\\php-cgi.exe' -PropertyType String >> C:\\setup.ps1; \
+    echo New-WebHandler -PSPath 'IIS:\\' -Name 'PHP' -Type 'System.Web.DefaultHttpHandler' -Verb '*' -Path '*.php' -Modules 'FastCgiModule' -ScriptProcessor '%PHP_DIR%\\php-cgi.exe' >> C:\\setup.ps1; \
+    powershell -ExecutionPolicy Bypass -File C:\\setup.ps1; \
+    Remove-Item C:\\setup.ps1
 
-# Copy the application file (index.php) to the IIS root directory
-COPY index.php C:\inetpub\wwwroot\index.php
+# Copy the index.php file into the IIS folder
+COPY index.php C:\\inetpub\\wwwroot\\index.php
 
-# Expose port 80 for HTTP traffic
+# Expose port 80 for IIS
 EXPOSE 80
 
-# Start IIS service
-CMD ["powershell", "Start-Service", "w3svc", ";", "tail", "-f", "/dev/null"]
+# Set IIS as the entry point
+ENTRYPOINT ["cmd", "/S", "/C", "start w3svc && ping 127.0.0.1 -t"]
