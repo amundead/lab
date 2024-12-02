@@ -10,13 +10,11 @@ WORKDIR /inetpub/wwwroot
 # Download PHP zip
 ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip C:\php.zip
 
-# Extract PHP zip and clean up using PowerShell commands
-RUN powershell -NoProfile -Command `
-    Expand-Archive -Path C:\php.zip -DestinationPath C:\php; `
-    Remove-Item -Force C:\php.zip
+# Extract PHP zip using built-in tar.exe and clean up
+RUN tar -xf C:\php.zip -C C:\ && del C:\php.zip
 
 # Add PHP to the system PATH
-RUN powershell -NoProfile -Command "setx PATH '%PATH%;C:\php'"
+RUN setx PATH "%PATH%;C:\php"
 
 # Configure IIS to use PHP with FastCGI
 RUN powershell -NoProfile -Command `
