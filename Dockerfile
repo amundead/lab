@@ -21,7 +21,7 @@ ENV PATH="C:\\php;${PATH}"
 COPY nginx.conf C:\\nginx\\conf\\nginx.conf
 
 # Copy PHP script
-COPY hello-world.php C:\\nginx\\html\\index.php
+COPY index.php C:\\nginx\\html\\index.php
 
 # Expose port 80
 EXPOSE 80
