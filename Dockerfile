@@ -15,9 +15,6 @@ RUN `
         Invoke-WebRequest 'https://windows.php.net/downloads/releases/php-8.2.11-nts-Win32-vs16-x64.zip' -OutFile C:\php.zip; `
         Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile C:\vc_redist-x64.exe; `
         Expand-Archive -Path c:\php.zip -DestinationPath C:\PHP; `
-        `
-        # Configure PHP `
-        Copy-Item C:\PHP\php.ini-production C:\PHP\php.ini; `
     } `
     catch { `
         $_.Exception; `
@@ -51,4 +48,3 @@ RUN powershell.exe -Command "'<?php phpinfo(); ?>' | Out-File C:\inetpub\wwwroot
 
 # Expose port 80 for the application
 EXPOSE 80
-
