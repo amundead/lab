@@ -1,9 +1,3 @@
-# escape=`
-
-#
-# This Dockerfile is updated for PHP 8.2 x64 running on IIS
-#
-
 # Stage 1: Base Image for PHP Installation
 FROM mcr.microsoft.com/windows/servercore/iis AS php82
 
