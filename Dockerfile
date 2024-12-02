@@ -19,7 +19,7 @@ RUN powershell.exe -Command `
     Import-Module IISAdministration; `
     New-IISHandlerMapping -Name "PHP" -Path "*.php" -Verb "*" `
         -ScriptProcessor "C:\\php\\php-cgi.exe" -ResourceType File -PreCondition "bitness64"; `
-    New-Item -Path "IIS:\\AppPools\\DefaultAppPool" -Name "Enable32BitAppOnWin64" -Value "False"
+    New-ItemProperty -Path "IIS:\\AppPools\\DefaultAppPool" -Name "Enable32BitAppOnWin64" -Value "False"
 
 # Optional: Add a starter page
 RUN powershell.exe -Command "'<?php phpinfo(); ?>' | Out-File C:\\inetpub\\wwwroot\\index.php -Encoding UTF8"
