@@ -4,10 +4,6 @@ FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
 # Remove the default IIS website content
 RUN powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\inetpub\wwwroot\*"
 
-# Ensure IIS features required for PHP (Web-Server, Web-WebServer, and FastCGI) are available
-RUN powershell -NoProfile -Command \
-    Install-WindowsFeature Web-Server, Web-WebServer, Web-FastCGI
-
 # Set working directory to IIS wwwroot
 WORKDIR C:/inetpub/wwwroot
 
