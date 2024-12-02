@@ -1,43 +1,31 @@
-# Use Windows Server Core LTSC2019 as the base image
+# Dockerfile
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Set environment variables
-ENV PHP_VERSION=8.4.1 \
-    PHP_DOWNLOAD_URL=https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip \
-    PHP_DIR="C:\\php"
+# Set environment variables for installation paths
+ENV NGINX_VERSION=1.27.3
+ENV PHP_VERSION=8.4.1
 
-# Install IIS (via dism.exe)
-RUN dism.exe /online /enable-feature /featurename:IIS-WebServerRole /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-WebServerManagementTools /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-CommonHttpFeatures /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-StaticContent /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-WebServer /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-RequestFiltering /all /norestart
+# Install necessary tools for downloading and extraction
+RUN powershell -Command `
+    Invoke-WebRequest -Uri https://nginx.org/download/nginx-${NGINX_VERSION}.zip -OutFile C:\\nginx.zip; `
+    Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; `
+    Remove-Item -Force C:\\nginx.zip; `
+    Rename-Item -Path C:\\nginx-${NGINX_VERSION} -NewName C:\\nginx; `
+    Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${PHP_VERSION}-Win32-vs17-x64.zip -OutFile C:\\php.zip; `
+    Expand-Archive -Path C:\\php.zip -DestinationPath C:\\php; `
+    Remove-Item -Force C:\\php.zip
 
-# Download and install PHP
-RUN powershell -Command \
-    Invoke-WebRequest -Uri $Env:PHP_DOWNLOAD_URL -OutFile php.zip; \
-    Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; \
-    Remove-Item -Force php.zip
+# Set up environment variables for PHP
+ENV PATH="C:\\php;${PATH}"
 
-# Copy custom applicationHost.config to allow handler overrides
-COPY applicationHost.config C:\\Windows\\System32\\inetsrv\\config\\applicationHost.config
+# Copy nginx.conf
+COPY nginx.conf C:\\nginx\\conf\\nginx.conf
 
-# Configure IIS to use PHP
-RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Value 'C:\\inetpub\\wwwroot' >> C:\\setup.ps1; \
-    echo New-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name scriptProcessor -Value '%PHP_DIR%\\php-cgi.exe' -PropertyType String >> C:\\setup.ps1; \
-    echo New-WebHandler -PSPath 'IIS:\\' -Name 'PHP' -Type 'System.Web.DefaultHttpHandler' -Verb '*' -Path '*.php' -Modules 'FastCgiModule' -ScriptProcessor '%PHP_DIR%\\php-cgi.exe' >> C:\\setup.ps1; \
-    powershell -ExecutionPolicy Bypass -File C:\\setup.ps1; \
-    Remove-Item C:\\setup.ps1
+# Copy PHP script
+COPY hello-world.php C:\\nginx\\html\\hello-world.php
 
-# Copy the index.php file into the IIS folder
-COPY index.php C:\\inetpub\\wwwroot\\index.php
-
-# Copy the web.config file for PHP handling
-COPY web.config C:\\inetpub\\wwwroot\\web.config
-
-# Expose port 80 for IIS
+# Expose port
 EXPOSE 80
 
-# Set IIS as the entry point
-ENTRYPOINT ["cmd", "/S", "/C", "start w3svc && ping 127.0.0.1 -t"]
+# Command to run nginx
+CMD ["C:\\nginx\\nginx.exe"]
