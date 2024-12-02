@@ -20,7 +20,9 @@ RUN powershell -NoProfile -Command "setx PATH \"\$env:PATH;C:/php\""
 RUN powershell -NoProfile -Command \
     Import-Module WebAdministration; \
     Set-WebConfigurationProperty -Filter 'system.webServer/handlers' -Name '.' -Value @{Name='PHP_via_FastCGI'; Path='*.php'; Verb='GET,HEAD,POST'; ScriptProcessor='C:/php/php-cgi.exe'; ResourceType='File'}; \
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:/php/php-cgi.exe'}
+    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:/php/php-cgi.exe'}; \
+    Set-Service -Name 'w3svc' -StartupType Automatic; \
+    Start-Service 'w3svc'
 
 # Copy index.php to the IIS wwwroot folder
 COPY index.php C:/inetpub/wwwroot/
