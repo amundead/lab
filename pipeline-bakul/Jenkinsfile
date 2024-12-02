@@ -10,7 +10,7 @@ pipeline {
         HARBOR_PROJECT = 'testing-app'  // Harbor project where image will be pushed
         HARBOR_IMAGE = 'win-php'
         IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${HARBOR_IMAGE}"  // Full image name for Harbor
-        TAG = 'v1.21'  // Tag for the Docker image
+        TAG = 'v1.22'  // Tag for the Docker image
         DOCKERFILE_LOCATION = './Dockerfile'     // Dockerfile in root location './tot/lab-01/Dockerfile'
     }
 

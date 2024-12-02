@@ -6,7 +6,8 @@ RUN powershell -Command \
     "Invoke-WebRequest -Uri 'https://nginx.org/download/nginx-1.27.3.zip' -OutFile C:\\nginx.zip; \
     Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; \
     Remove-Item -Force C:\\nginx.zip; \
-    Rename-Item -Path 'C:\\nginx-1.27.3' -NewName 'C:\\nginx'"
+    Rename-Item -Path 'C:\\nginx-1.27.3' -NewName 'C:\\nginx'; \
+    New-Item -Path C:\\nginx\\logs -ItemType Directory"
 
 # Install tools, download, and set up PHP
 RUN powershell -Command \
@@ -27,4 +28,5 @@ COPY index.php C:\\nginx\\html\\index.php
 EXPOSE 80
 
 # Command to start Nginx
-CMD ["C:\\nginx\\nginx.exe"]
+CMD ["C:\\nginx\\nginx.exe", "-c", "C:\\nginx\\conf\\nginx.conf"]
+
