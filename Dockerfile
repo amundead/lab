@@ -10,25 +10,35 @@ WORKDIR C:/inetpub/wwwroot
 # Download PHP zip
 ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip C:/php.zip
 
-# Extract PHP zip using tar.exe and clean up
-RUN powershell -NoProfile -Command "tar -xf C:/php.zip -C C:/; del C:/php.zip"
+# Install Visual C++ Redistributable (VC Redist)
+RUN powershell -Command \
+    Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "C:/vc_redist.x64.exe" ; \
+    Start-Process -Wait -FilePath "C:/vc_redist.x64.exe" -ArgumentList "/quiet" ; \
+    Remove-Item -Force "C:/vc_redist.x64.exe"
+
+# Install PHP Wincache
+RUN powershell -Command \
+    Invoke-WebRequest -Uri "https://windows.php.net/downloads/pecl/releases/wincache/2.1.0/php_wincache-2.1.0-8.4-ts-x64.zip" -OutFile "C:/php_wincache.zip" ; \
+    Expand-Archive -Path "C:/php_wincache.zip" -DestinationPath "C:/php_wincache" ; \
+    Remove-Item -Force "C:/php_wincache.zip"
+
+# Enable required IIS Features
+RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All
+
+# Configure IIS to serve PHP files
+RUN powershell -Command \
+    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\IIS\Parameters' -Name 'CGI' -Value 1 -PropertyType DWord -Force ; \
+    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\IIS\Parameters' -Name 'CgiWithScriptMaps' -Value 1 -PropertyType DWord -Force ; \
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\IIS\Parameters' -Name 'EnableScripting' -Value 1
 
 # Add PHP to the system PATH
-RUN powershell -NoProfile -Command "setx PATH \"\$env:PATH;C:/php\""
+RUN setx PATH "%PATH%;C:\php;C:\php\ext"
 
-# Configure IIS to use PHP with FastCGI
-RUN powershell -NoProfile -Command \
-    Import-Module WebAdministration; \
-    Set-WebConfigurationProperty -Filter 'system.webServer/handlers' -Name '.' -Value @{Name='PHP_via_FastCGI'; Path='*.php'; Verb='GET,HEAD,POST'; ScriptProcessor='C:/php/php-cgi.exe'; ResourceType='File'}; \
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:/php/php-cgi.exe'}; \
-    Set-Service -Name 'w3svc' -StartupType Automatic; \
-    Start-Service 'w3svc'
+# Copy PHP files into IIS root
+COPY index.php C:/inetpub/wwwroot/index.php
 
-# Copy index.php to the IIS wwwroot folder
-COPY index.php C:/inetpub/wwwroot/
-
-# Expose port 80 for the web server
+# Expose IIS port
 EXPOSE 80
 
-# Start IIS service and keep it running when the container starts
-CMD ["powershell", "-NoProfile", "-Command", "Start-Service w3svc; while ($true) { Start-Sleep -Seconds 3600; }"]
+# Start IIS
+CMD ["powershell", "-NoProfile", "-Command", "Start-Service w3svc; Wait-Process w3wp"]
