@@ -33,5 +33,6 @@ COPY index.php C:\\nginx\\html\\index.php
 # Expose port 80
 EXPOSE 80
 
-# Command to start Nginx
+# Command to start Nginx from its root directory
+WORKDIR C:\\nginx
 CMD ["C:\\nginx\\nginx.exe", "-c", "C:\\nginx\\conf\\nginx.conf"]
