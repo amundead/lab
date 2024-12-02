@@ -4,6 +4,10 @@ FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
 # Remove the default IIS website content
 RUN powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\inetpub\wwwroot\*"
 
+# Ensure necessary IIS features are installed
+RUN powershell -NoProfile -Command \
+    Install-WindowsFeature Web-Server, Web-WebServer, Web-FastCGI
+
 # Set working directory to IIS wwwroot
 WORKDIR C:/inetpub/wwwroot
 
@@ -28,5 +32,5 @@ COPY index.php C:/inetpub/wwwroot/
 # Expose port 80 for the web server
 EXPOSE 80
 
-# Start IIS service when the container runs
+# Start IIS service and keep it running when the container starts
 CMD ["powershell", "-NoProfile", "-Command", "Start-Service w3svc; while ($true) { Start-Sleep -Seconds 3600; }"]
