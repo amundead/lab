@@ -10,12 +10,12 @@ WORKDIR /inetpub/wwwroot
 # Download PHP zip
 ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip php.zip
 
-# Extract PHP zip and clean up
+# Extract PHP zip using PowerShell's `Expand-Archive` and clean up
 RUN powershell -NoProfile -Command `
-    Start-Process -FilePath powershell.exe -ArgumentList 'Expand-Archive -Path php.zip -DestinationPath C:\php' -Wait; `
+    Expand-Archive -Path php.zip -DestinationPath C:\php; `
     Remove-Item -Force php.zip
 
-# Add PHP to PATH
+# Add PHP to the system PATH
 RUN setx PATH "%PATH%;C:\php"
 
 # Configure PHP with IIS
@@ -23,8 +23,7 @@ RUN powershell -NoProfile -Command `
     Import-Module WebAdministration; `
     Set-WebConfigurationProperty -filter "system.webServer/handlers" -name "." -value @`
     {Name="PHP_via_FastCGI"; Path="*.php"; Verb="GET,HEAD,POST"; ScriptProcessor="C:\php\php-cgi.exe"; ResourceType="File"}; `
-    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @`
-    {fullPath="C:\php\php-cgi.exe"}
+    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{fullPath="C:\php\php-cgi.exe"}
 
 # Copy index.php to the IIS wwwroot folder
 COPY index.php .
