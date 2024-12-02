@@ -10,7 +10,8 @@ WORKDIR /inetpub/wwwroot
 # Download and install PHP
 ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip php.zip
 RUN powershell -NoProfile -Command `
-    Expand-Archive -Path php.zip -DestinationPath C:\php; `
+    Add-Type -A 'System.IO.Compression.FileSystem'; `
+    [System.IO.Compression.ZipFile]::ExtractToDirectory('php.zip', 'C:\php'); `
     Remove-Item -Force php.zip; `
     [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\php', [System.EnvironmentVariableTarget]::Machine)
 
