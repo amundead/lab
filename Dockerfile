@@ -1,39 +1,32 @@
-# Use Windows Server Core LTSC2019 as the base image
-FROM mcr.microsoft.com/windows/servercore:ltsc2019
+# Use Windows Server Core image with IIS
+FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
 
-# Set environment variables
-ENV PHP_VERSION=8.4.1 \
-    PHP_DOWNLOAD_URL=https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip \
-    PHP_DIR="C:\\php"
+# Remove default IIS website content
+RUN powershell -NoProfile -Command Remove-Item -Recurse C:\inetpub\wwwroot\*
 
-# Install IIS and CGI Module
-RUN dism.exe /online /enable-feature /featurename:IIS-WebServerRole /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-WebServerManagementTools /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-CommonHttpFeatures /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-StaticContent /all /norestart && \
-    dism.exe /online /enable-feature /featurename:IIS-CGI /all /norestart
+# Set working directory to IIS wwwroot
+WORKDIR /inetpub/wwwroot
 
 # Download and install PHP
-RUN powershell -Command \
-    Invoke-WebRequest -Uri $Env:PHP_DOWNLOAD_URL -OutFile php.zip; \
-    Expand-Archive -Path php.zip -DestinationPath $Env:PHP_DIR; \
-    Remove-Item -Force php.zip
+ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip php.zip
+RUN powershell -NoProfile -Command `
+    Expand-Archive -Path php.zip -DestinationPath C:\php; `
+    Remove-Item -Force php.zip; `
+    [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\php', [System.EnvironmentVariableTarget]::Machine)
 
-# Configure IIS to use PHP
-RUN powershell -Command \
-    Import-Module WebAdministration; \
-    Set-ItemProperty IIS:\Sites\Default Web Site -Name physicalPath -Value C:\inetpub\wwwroot; \
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/handlers' -name '.' -value @{name='PHP';path='*.php';verb='*';modules='FastCgiModule';scriptProcessor='C:\php\php-cgi.exe';resourceType='Unspecified'}
+# Configure PHP with IIS
+RUN powershell -NoProfile -Command `
+    Import-Module WebAdministration; `
+    Set-WebConfigurationProperty -filter "system.webServer/handlers" -name "." -value `
+    @{Name="PHP_via_FastCGI"; Path="*.php"; Verb="GET,HEAD,POST"; ScriptProcessor="C:\php\php-cgi.exe"; ResourceType="File"}; `
+    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/fastCgi" -name "." -value `
+    @{fullPath="C:\php\php-cgi.exe"}
 
-# Set permissions for IIS user
-RUN icacls "C:\\php" /grant IIS_IUSRS:(OI)(CI)RX /T && \
-    icacls "C:\\inetpub\\wwwroot" /grant IIS_IUSRS:(OI)(CI)RX /T
+# Copy index.php to the IIS wwwroot folder
+COPY index.php .
 
-# Copy the index.php file into the IIS folder
-COPY index.php C:\\inetpub\\wwwroot\\index.php
-
-# Expose port 80 for IIS
+# Expose port 80 for the web server
 EXPOSE 80
 
 # Start IIS
-ENTRYPOINT ["cmd", "/S", "/C", "start w3svc && ping 127.0.0.1 -t"]
+CMD ["powershell", "-NoProfile", "-Command", "Start-Service w3svc; while ($true) { Start-Sleep -Seconds 3600; }"]
