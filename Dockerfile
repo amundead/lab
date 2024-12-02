@@ -8,22 +8,22 @@ RUN powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\inetpub\wwwro
 WORKDIR /inetpub/wwwroot
 
 # Download PHP zip
-ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip php.zip
+ADD https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip C:\php.zip
 
-# Extract PHP zip using PowerShell's `Expand-Archive` and clean up
+# Extract PHP zip and clean up using PowerShell commands
 RUN powershell -NoProfile -Command `
-    Expand-Archive -Path php.zip -DestinationPath C:\php; `
-    Remove-Item -Force php.zip
+    Expand-Archive -Path C:\php.zip -DestinationPath C:\php; `
+    Remove-Item -Force C:\php.zip
 
 # Add PHP to the system PATH
-RUN setx PATH "%PATH%;C:\php"
+RUN powershell -NoProfile -Command "setx PATH '%PATH%;C:\php'"
 
-# Configure PHP with IIS
+# Configure IIS to use PHP with FastCGI
 RUN powershell -NoProfile -Command `
     Import-Module WebAdministration; `
-    Set-WebConfigurationProperty -filter "system.webServer/handlers" -name "." -value @`
-    {Name="PHP_via_FastCGI"; Path="*.php"; Verb="GET,HEAD,POST"; ScriptProcessor="C:\php\php-cgi.exe"; ResourceType="File"}; `
-    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{fullPath="C:\php\php-cgi.exe"}
+    Set-WebConfigurationProperty -filter 'system.webServer/handlers' -name '.' -value @`
+    {Name='PHP_via_FastCGI'; Path='*.php'; Verb='GET,HEAD,POST'; ScriptProcessor='C:\php\php-cgi.exe'; ResourceType='File'}; `
+    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:\php\php-cgi.exe'}
 
 # Copy index.php to the IIS wwwroot folder
 COPY index.php .
@@ -31,5 +31,5 @@ COPY index.php .
 # Expose port 80 for the web server
 EXPOSE 80
 
-# Start IIS
+# Start IIS service when the container runs
 CMD ["powershell", "-NoProfile", "-Command", "Start-Service w3svc; while ($true) { Start-Sleep -Seconds 3600; }"]
