@@ -16,12 +16,11 @@ RUN tar -xf C:\php.zip -C C:\ && del C:\php.zip
 # Add PHP to the system PATH
 RUN setx PATH "%PATH%;C:\php"
 
-# Configure IIS to use PHP with FastCGI
+# Install IIS required features and configure IIS to use PHP with FastCGI
 RUN powershell -NoProfile -Command `
-    Add-WindowsFeature Web-Ftp-Server, Web-Ftp-Service, Web-Ftp-Ext, `
-    Web-ASP, Web-Asp-Net, Web-Asp-Net45, Web-Common-Http, Web-Default-Doc, `
-    Web-Dyn-Compression, Web-Dir-Browsing, Web-Http-Redirect, Web-Stat-Compression, `
-    Web-WebServer; `
+    Install-WindowsFeature Web-WebServer, Web-ASP, Web-Asp-Net, Web-Asp-Net45, `
+    Web-Common-Http, Web-Default-Doc, Web-Dir-Browsing, Web-Http-Redirect, `
+    Web-Stat-Compression, Web-WebServer; `
     Set-WebConfigurationProperty -filter 'system.webServer/handlers' `
     -name '.' -value @{Name='PHP_via_FastCGI'; Path='*.php'; Verb='GET,HEAD,POST'; ScriptProcessor='C:\php\php-cgi.exe'; ResourceType='File'}; `
     Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' `
