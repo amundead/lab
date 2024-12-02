@@ -7,7 +7,13 @@ RUN powershell -Command \
     Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; \
     Remove-Item -Force C:\\nginx.zip; \
     Rename-Item -Path 'C:\\nginx-1.27.3' -NewName 'C:\\nginx'; \
-    if (-not (Test-Path -Path 'C:\\nginx\\logs')) { New-Item -Path 'C:\\nginx\\logs' -ItemType Directory }"
+    if (-not (Test-Path -Path 'C:\\nginx\\logs')) { New-Item -Path 'C:\\nginx\\logs' -ItemType Directory }; \
+    if (-not (Test-Path -Path 'C:\\nginx\\temp')) { New-Item -Path 'C:\\nginx\\temp' -ItemType Directory }; \
+    if (-not (Test-Path -Path 'C:\\nginx\\temp\\client_body_temp')) { New-Item -Path 'C:\\nginx\\temp\\client_body_temp' -ItemType Directory }; \
+    if (-not (Test-Path -Path 'C:\\nginx\\temp\\proxy_temp')) { New-Item -Path 'C:\\nginx\\temp\\proxy_temp' -ItemType Directory }; \
+    if (-not (Test-Path -Path 'C:\\nginx\\temp\\fastcgi_temp')) { New-Item -Path 'C:\\nginx\\temp\\fastcgi_temp' -ItemType Directory }; \
+    if (-not (Test-Path -Path 'C:\\nginx\\temp\\uwsgi_temp')) { New-Item -Path 'C:\\nginx\\temp\\uwsgi_temp' -ItemType Directory }; \
+    if (-not (Test-Path -Path 'C:\\nginx\\temp\\scgi_temp')) { New-Item -Path 'C:\\nginx\\temp\\scgi_temp' -ItemType Directory }"
 
 # Install tools, download, and set up PHP
 RUN powershell -Command \
