@@ -1,31 +1,46 @@
-# Use Windows Server Core as the base image
+# Base Image
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Install tools, download, and set up Nginx (Windows binary)
-RUN powershell.exe -Command \
-    Invoke-WebRequest -Uri "https://nginx.org/download/nginx-1.27.3.zip" -OutFile "C:\\nginx.zip"; \
-    Expand-Archive -Path "C:\\nginx.zip" -DestinationPath "C:\\"; \
-    Remove-Item -Force "C:\\nginx.zip"; \
-    Rename-Item -Path "C:\\nginx-1.27.3" -NewName "C:\\nginx"
+# Define environment variables
+ENV PHP_VERSION=8.4.1
+ENV PHP_URL=https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip
+ENV PHP_INSTALL_DIR=C:\php
 
-# Install tools, download, and set up PHP
-RUN powershell.exe -Command \
-    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip" -OutFile "C:\\php.zip"; \
-    Expand-Archive -Path "C:\\php.zip" -DestinationPath "C:\\php"; \
-    Remove-Item -Force "C:\\php.zip"
+# Download and install IIS
+RUN powershell -Command \
+    Add-WindowsFeature Web-Server,Web-WebServer,Web-Common-Http,Web-Static-Content,Web-Default-Doc,Web-Http-Errors,Web-App-Dev,Web-Asp-Net45,Web-Net-Ext45,Web-ISAPI-Ext,Web-ISAPI-Filter,Web-Health,Web-Http-Logging,Web-Performance,Web-Stat-Compression,Web-Security,Web-Filtering,Web-Mgmt-Console
 
-# Set up environment variables for PHP
-ENV PATH="C:\\php;${PATH}"
+# Download and install PHP
+RUN powershell -Command \
+    Invoke-WebRequest -Uri %PHP_URL% -OutFile C:\php.zip; \
+    Expand-Archive -Path C:\php.zip -DestinationPath %PHP_INSTALL_DIR%; \
+    Remove-Item -Force C:\php.zip
 
-# Copy nginx.conf
-COPY nginx.conf C:\\nginx\\conf\\nginx.conf
+# Configure IIS to use PHP via FastCGI
+RUN powershell -Command \
+    Import-Module WebAdministration; \
+    New-WebAppPool -Name "PHPAppPool"; \
+    New-Item -Path "IIS:\Sites\Default Web Site\php" -Type Directory; \
+    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name applicationPool -Value "PHPAppPool"; \
+    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{ \
+        "fullPath"="%PHP_INSTALL_DIR%\\php-cgi.exe"; \
+        "instanceMaxRequests"="10000"; \
+        "maxInstances"="5" \
+    }; \
+    Set-WebConfiguration -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/handlers" -value @{ \
+        "name"="php"; \
+        "path"="*.php"; \
+        "verb"="*"; \
+        "modules"="FastCgiModule"; \
+        "scriptProcessor"="%PHP_INSTALL_DIR%\\php-cgi.exe"; \
+        "resourceType"="File" \
+    }
 
-# Copy PHP script
-COPY index.php C:\\nginx\\html\\index.php
+# Copy the application file (index.php) to the IIS root directory
+COPY index.php C:\inetpub\wwwroot\index.php
 
-# Expose port 80
+# Expose port 80 for HTTP traffic
 EXPOSE 80
 
-# Command to start Nginx from its root directory
-WORKDIR C:\\nginx
-CMD ["C:\\nginx\\nginx.exe", "-c", "C:\\nginx\\conf\\nginx.conf"]
+# Start IIS service
+CMD ["powershell", "Start-Service", "w3svc", ";", "tail", "-f", "/dev/null"]
