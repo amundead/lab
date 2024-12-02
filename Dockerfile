@@ -17,10 +17,10 @@ RUN powershell -NoProfile -Command `
 # Configure PHP with IIS
 RUN powershell -NoProfile -Command `
     Import-Module WebAdministration; `
-    Set-WebConfigurationProperty -filter "system.webServer/handlers" -name "." -value `
-    @{Name="PHP_via_FastCGI"; Path="*.php"; Verb="GET,HEAD,POST"; ScriptProcessor="C:\php\php-cgi.exe"; ResourceType="File"}; `
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/fastCgi" -name "." -value `
-    @{fullPath="C:\php\php-cgi.exe"}
+    Set-WebConfigurationProperty -filter "system.webServer/handlers" -name "." -value @`
+    {Name="PHP_via_FastCGI"; Path="*.php"; Verb="GET,HEAD,POST"; ScriptProcessor="C:\php\php-cgi.exe"; ResourceType="File"}; `
+    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter "system.webServer/fastCgi" -name "." -value @`
+    {fullPath="C:\php\php-cgi.exe"}
 
 # Copy index.php to the IIS wwwroot folder
 COPY index.php .
