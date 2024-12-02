@@ -29,4 +29,3 @@ EXPOSE 80
 # Command to start Nginx from its root directory
 WORKDIR C:\nginx
 CMD ["C:\\nginx\\nginx.exe", "-c", "C:\\nginx\\conf\\nginx.conf"]
-
