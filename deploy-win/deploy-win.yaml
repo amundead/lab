@@ -22,7 +22,7 @@ spec:
         effect: "NoSchedule"
       containers:
       - name: win-php
-        image: bakul.mod.gov.my/testing-app/win-php@sha256:3d9ab4ba5c5493813909beab2bf04ed8557785fa891e644c7953cb582f3762de
+        image: bakul.mod.gov.my/testing-app/win-php@sha256:ea363e956ccc9811028e3157a767a01eafbee3289f76208ea48ab7224b7c9cd4
         imagePullPolicy: Always
         ports:
         - containerPort: 80
