@@ -3,7 +3,6 @@ FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
 
 # Download and install PHP and VC++ Redistributable
 RUN powershell.exe -Command `
-    $ErrorActionPreference = 'Stop'; `
     Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip" -OutFile "C:\\php.zip"; `
     Expand-Archive -Path "C:\\php.zip" -DestinationPath "C:\\php"; `
     Remove-Item -Force "C:\\php.zip"; `
