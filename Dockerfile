@@ -12,7 +12,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 RUN `
     try { `
         # Install PHP `
-        Invoke-WebRequest 'https://windows.php.net/downloads/releases/php-8.2.11-nts-Win32-vs16-x64.zip' -OutFile C:\php.zip; `
+        Invoke-WebRequest 'https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip' -OutFile C:\php.zip; `
         Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile C:\vc_redist-x64.exe; `
         Expand-Archive -Path c:\php.zip -DestinationPath C:\PHP; `
     } `
