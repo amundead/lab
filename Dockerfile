@@ -16,12 +16,6 @@ RUN powershell -Command \
     Start-Process -Wait -FilePath "C:/vc_redist.x64.exe" -ArgumentList "/quiet" ; \
     Remove-Item -Force "C:/vc_redist.x64.exe"
 
-# Install PHP Wincache
-RUN powershell -Command \
-    Invoke-WebRequest -Uri "https://windows.php.net/downloads/pecl/releases/wincache/2.1.0/php_wincache-2.1.0-8.4-ts-x64.zip" -OutFile "C:/php_wincache.zip" ; \
-    Expand-Archive -Path "C:/php_wincache.zip" -DestinationPath "C:/php_wincache" ; \
-    Remove-Item -Force "C:/php_wincache.zip"
-
 # Enable required IIS Features
 RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All
 
