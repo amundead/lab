@@ -26,9 +26,9 @@ RUN echo Set-ItemProperty 'IIS:\\Sites\\Default Web Site' -Name physicalPath -Va
     powershell -ExecutionPolicy Bypass -File C:\\setup.ps1; \
     Remove-Item C:\\setup.ps1
 
-# Add MIME type for PHP files
-RUN appcmd set config /section:staticContent /+[fileExtension='.php',mimeType='application/x-httpd-php']
-
+# Add MIME type for PHP using PowerShell
+RUN powershell -Command \
+    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/staticContent' -name '.' -value @{fileExtension='.php';mimeType='application/x-httpd-php'}
 
 # Copy the index.php file into the IIS folder
 COPY index.php C:\\inetpub\\wwwroot\\index.php
