@@ -17,23 +17,28 @@ RUN powershell -Command \
     Remove-Item -Force C:\php.zip
 
 # Configure IIS to use PHP via FastCGI
-RUN powershell -Command \
-    Import-Module WebAdministration; \
-    New-WebAppPool -Name "PHPAppPool"; \
-    New-Item -Path "IIS:\Sites\Default Web Site\php" -Type Directory; \
-    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name applicationPool -Value "PHPAppPool"; \
-    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{ \
-        "fullPath"="%PHP_INSTALL_DIR%\\php-cgi.exe"; \
-        "instanceMaxRequests"="10000"; \
-        "maxInstances"="5" \
-    }; \
-    Set-WebConfiguration -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/handlers" -value @{ \
-        "name"="php"; \
-        "path"="*.php"; \
-        "verb"="*"; \
-        "modules"="FastCgiModule"; \
-        "scriptProcessor"="%PHP_INSTALL_DIR%\\php-cgi.exe"; \
-        "resourceType"="File" \
+RUN powershell -NoProfile -Command `
+    Import-Module WebAdministration; `
+    # Create Application Pool
+    New-WebAppPool -Name "PHPAppPool"; `
+    # Create PHP directory in Default Web Site
+    New-Item -Path "IIS:\Sites\Default Web Site\php" -Type Directory; `
+    # Set Application Pool for Default Web Site
+    Set-ItemProperty -Path "IIS:\Sites\Default Web Site" -Name applicationPool -Value "PHPAppPool"; `
+    # Add FastCGI settings for PHP
+    Add-WebConfigurationProperty -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/fastCgi" -name "." -value @{ `
+        fullPath="%PHP_INSTALL_DIR%\\php-cgi.exe"; `
+        instanceMaxRequests=10000; `
+        maxInstances=5 `
+    }; `
+    # Add handler mapping for PHP
+    Add-WebConfiguration -pspath "MACHINE/WEBROOT/APPHOST" -filter "system.webServer/handlers" -value @{ `
+        name="php"; `
+        path="*.php"; `
+        verb="*"; `
+        modules="FastCgiModule"; `
+        scriptProcessor="%PHP_INSTALL_DIR%\\php-cgi.exe"; `
+        resourceType="File" `
     }
 
 # Copy the application file (index.php) to the IIS root directory
