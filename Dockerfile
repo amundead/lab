@@ -7,7 +7,7 @@ RUN powershell -Command \
     Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; \
     Remove-Item -Force C:\\nginx.zip; \
     Rename-Item -Path 'C:\\nginx-1.27.3' -NewName 'C:\\nginx'; \
-    New-Item -Path C:\\nginx\\logs -ItemType Directory"
+    if (-not (Test-Path -Path 'C:\\nginx\\logs')) { New-Item -Path 'C:\\nginx\\logs' -ItemType Directory }"
 
 # Install tools, download, and set up PHP
 RUN powershell -Command \
@@ -29,4 +29,3 @@ EXPOSE 80
 
 # Command to start Nginx
 CMD ["C:\\nginx\\nginx.exe", "-c", "C:\\nginx\\conf\\nginx.conf"]
-
