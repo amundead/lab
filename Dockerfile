@@ -10,7 +10,9 @@ RUN powershell -Command `
     Invoke-WebRequest -Uri https://nginx.org/download/nginx-${NGINX_VERSION}.zip -OutFile C:\\nginx.zip; `
     Expand-Archive -Path C:\\nginx.zip -DestinationPath C:\\; `
     Remove-Item -Force C:\\nginx.zip; `
-    Rename-Item -Path C:\\nginx-${NGINX_VERSION} -NewName C:\\nginx; `
+    Rename-Item -Path C:\\nginx-${NGINX_VERSION} -NewName C:\\nginx
+
+RUN powershell -Command `
     Invoke-WebRequest -Uri https://windows.php.net/downloads/releases/php-${PHP_VERSION}-Win32-vs17-x64.zip -OutFile C:\\php.zip; `
     Expand-Archive -Path C:\\php.zip -DestinationPath C:\\php; `
     Remove-Item -Force C:\\php.zip
