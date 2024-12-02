@@ -12,15 +12,22 @@ RUN powershell -Command \
 
 # Enable IIS CGI feature
 RUN dism.exe /online /enable-feature /all /featureName:IIS-CGI
+RUN dism.exe /online /enable-feature /all /featureName:IIS-WebServerRole
+RUN dism.exe /online /enable-feature /all /featureName:IIS-ISAPI-Ext
+RUN dism.exe /online /enable-feature /all /featureName:IIS-ISAPI-Filter
 
 # Install WebAdministration module for IIS management
 RUN powershell -Command \
     Install-WindowsFeature Web-WebServer, Web-ISAPI-Ext, Web-ISAPI-Filter; \
     Import-Module WebAdministration
 
+# Verify IIS features are available
+RUN powershell -Command Get-Command -Module WebAdministration
+
 # Configure IIS for PHP using WebAdministration module
 RUN powershell -Command \
-    New-ItemProperty -Path 'IIS:\\AppPools\\DefaultAppPool' -Name 'Enable32BitAppOnWin64' -Value 'False'; \
+    Import-Module WebAdministration; \
+    Set-ItemProperty -Path 'IIS:\\AppPools\\DefaultAppPool' -Name 'Enable32BitAppOnWin64' -Value 'False'; \
     New-WebHandler -Name "PHP" -Path "*.php" -Verb "*" -Module "IsapiModule" -ScriptProcessor "C:\\php\\php-cgi.exe" -ResourceType "File"
 
 # Optional: Add a starter PHP page
