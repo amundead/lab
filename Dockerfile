@@ -1,31 +1,40 @@
-# Use Windows Server Core as the base image
+# Use the official Windows Server Core image as the base
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
-# Install tools, download, and set up Nginx (Windows binary)
-RUN powershell.exe -Command \
-    Invoke-WebRequest -Uri "https://nginx.org/download/nginx-1.27.3.zip" -OutFile "C:\\nginx.zip"; \
-    Expand-Archive -Path "C:\\nginx.zip" -DestinationPath "C:\\"; \
-    Remove-Item -Force "C:\\nginx.zip"; \
-    Rename-Item -Path "C:\\nginx-1.27.3" -NewName "C:\\nginx"
+# Set environment variable for Node.js version and download URL
+ENV NODE_VERSION v22.11.0
+ENV NODE_DIST_URL https://nodejs.org/dist/v22.11.0/node-v22.11.0-win-x64.zip
+ENV NODE_HOME C:/nodejs
 
-# Install tools, download, and set up PHP
-RUN powershell.exe -Command \
-    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-Win32-vs17-x64.zip" -OutFile "C:\\php.zip"; \
-    Expand-Archive -Path "C:\\php.zip" -DestinationPath "C:\\php"; \
-    Remove-Item -Force "C:\\php.zip"
+# Install Node.js by downloading and extracting the zip file
+RUN powershell -Command \
+    Invoke-WebRequest -Uri $env:NODE_DIST_URL -OutFile nodejs.zip; \
+    Expand-Archive -Path nodejs.zip -DestinationPath $env:NODE_HOME; \
+    Remove-Item nodejs.zip; \
+    $env:Path = "$env:PATH;$env:NODE_HOME"; \
+    [System.Environment]::SetEnvironmentVariable('Path', $env:Path, [System.EnvironmentVariableTarget]::Machine)
 
-# Set up environment variables for PHP
-ENV PATH="C:\\php;${PATH}"
+# Set the working directory in the container
+WORKDIR /app
 
-# Copy nginx.conf
-COPY nginx.conf C:\\nginx\\conf\\nginx.conf
-
-# Copy PHP script
-COPY index.php C:\\nginx\\html\\index.php
+# Copy the index.html from the host machine to the container's working directory
+COPY index.html /app/index.html
 
 # Expose port 80
 EXPOSE 80
 
-# Command to start Nginx from its root directory
-WORKDIR C:\\nginx
-CMD ["C:\\nginx\\nginx.exe", "-c", "C:\\nginx\\conf\\nginx.conf"]
+# Start a simple Node.js HTTP server to serve the index.html file
+CMD powershell -Command \
+    $server = New-Object System.Net.HttpListener; \
+    $server.Prefixes.Add("http://+:80/"); \
+    $server.Start(); \
+    while ($true) { \
+        $context = $server.GetContext(); \
+        $response = $context.Response; \
+        $response.ContentType = "text/html"; \
+        $response.StatusCode = 200; \
+        $response.ContentEncoding = [System.Text.Encoding]::UTF8; \
+        $response.OutputStream.Write([System.IO.File]::ReadAllBytes("index.html"), 0, [System.IO.File]::ReadAllBytes("index.html").Length); \
+        $response.OutputStream.Close(); \
+    }
+
