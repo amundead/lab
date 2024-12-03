@@ -2,13 +2,13 @@
 FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
 
 # Download and install PHP and VC++ Redistributable
-RUN powershell -Command `
-    Invoke-WebRequest -Uri "https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip" -OutFile "C:\\php.zip"; `
-    Expand-Archive -Path "C:\\php.zip" -DestinationPath "C:\\php"; `
-    Remove-Item -Force "C:\\php.zip"; `
-    Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "C:\\vc_redist.x64.exe"; `
-    Start-Process -FilePath "C:\\vc_redist.x64.exe" -ArgumentList '/install', '/quiet', '/norestart' -Wait; `
-    Remove-Item -Force "C:\\vc_redist.x64.exe"; `
+RUN powershell -Command \
+    Invoke-WebRequest -Uri 'https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip' -OutFile 'C:\\php.zip'; \
+    Expand-Archive -Path 'C:\\php.zip' -DestinationPath 'C:\\php'; \
+    Remove-Item -Force 'C:\\php.zip'; \
+    Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile 'C:\\vc_redist.x64.exe'; \
+    Start-Process -FilePath 'C:\\vc_redist.x64.exe' -ArgumentList '/install', '/quiet', '/norestart' -Wait; \
+    Remove-Item -Force 'C:\\vc_redist.x64.exe'; \
     [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\php', [System.EnvironmentVariableTarget]::Machine)
 
 
