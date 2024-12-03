@@ -35,7 +35,7 @@ $nodeIP = is_null($nodeIP) ? 'Unknown' : $nodeIP;
   </style>
 </head>
 <body>
-  <h1>Hello World v1.02</h1>
+  <h1>Hello World PHP v1.02</h1>
   <p><strong>Hostname:</strong> <?php echo htmlspecialchars($hostname); ?></p>
   <p><strong>Node IP:</strong> <?php echo htmlspecialchars($nodeIP); ?></p>
 </body>
