@@ -1,5 +1,8 @@
 FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
 
+# Optional: Add Starter PHP Page
+WORKDIR /inetpub/wwwroot
+
 # Install PHP and VC++ Redistributable
 RUN powershell -Command \
     "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
@@ -24,10 +27,6 @@ RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && \
     [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\PHP', [System.EnvironmentVariableTarget]::Machine); \
     [System.Environment]::SetEnvironmentVariable('PHP', 'C:\\PHP', [System.EnvironmentVariableTarget]::Machine); \
     Remove-Item -Recurse -Force 'C:\\inetpub\\wwwroot\\*'"
-
-# Optional: Add Starter PHP Page
-
-WORKDIR /inetpub/wwwroot
 
 # Copy the index.php file to the IIS web root
 COPY index.php C:\inetpub\wwwroot\
