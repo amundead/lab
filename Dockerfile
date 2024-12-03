@@ -25,9 +25,12 @@ RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && \
     [System.Environment]::SetEnvironmentVariable('PHP', 'C:\\PHP', [System.EnvironmentVariableTarget]::Machine); \
     Remove-Item -Recurse -Force 'C:\\inetpub\\wwwroot\\*'"
 
-
 # Optional: Add Starter PHP Page
-RUN powershell.exe -Command "'<?php phpinfo(); ?>' | Out-File C:\inetpub\wwwroot\index.php -Encoding UTF8"
+
+WORKDIR /inetpub/wwwroot
+
+# Copy the index.php file to the IIS web root
+COPY index.php C:\inetpub\wwwroot\
 
 # Expose Port 80
 EXPOSE 80
