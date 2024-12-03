@@ -14,8 +14,6 @@ RUN powershell -Command \
 
 # Enable IIS CGI feature and configure IIS for PHP
 RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && 
-    C:\vc_redist-x64.exe /quiet /install && 
-    del C:\vc_redist-x64.exe && 
     %windir%\system32\inetsrv\appcmd.exe set config /section:system.webServer/fastCgi /+[fullPath='C:\PHP\php-cgi.exe'] && 
     %windir%\system32\inetsrv\appcmd.exe set config /section:system.webServer/handlers /+[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='C:\PHP\php-cgi.exe',resourceType='Either'] && 
     %windir%\system32\inetsrv\appcmd.exe set config -section:system.webServer/fastCgi /[fullPath='C:\PHP\php-cgi.exe'].instanceMaxRequests:10000 && 
