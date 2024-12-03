@@ -12,21 +12,21 @@ RUN powershell -Command \
     [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\php', [System.EnvironmentVariableTarget]::Machine); \
     [System.Environment]::SetEnvironmentVariable('PHP', 'C:\\php', [System.EnvironmentVariableTarget]::Machine)"
 
-# Enable IIS Features
-RUN dism.exe /online /enable-feature /all /featureName:IIS-WebServer /NoRestart && \
-    dism.exe /online /enable-feature /all /featureName:IIS-CGI /NoRestart
-
-# Configure FastCGI and PHP Handler
-RUN powershell -Command \
-    "Import-Module WebAdministration; \
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:\\PHP\\php-cgi.exe'}; \
-    New-WebHandler -Name 'PHP_via_FastCGI' -Path '*.php' -Verb '*' -Modules 'FastCgiModule' -ScriptProcessor 'C:\\PHP\\php-cgi.exe' -ResourceType 'Either'; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application[@fullPath=''C:\\PHP\\php-cgi.exe'']/environmentVariables' -name '.' -value @{name='PHP_FCGI_MAX_REQUESTS';value='10000'}; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application[@fullPath=''C:\\PHP\\php-cgi.exe'']/environmentVariables' -name '.' -value @{name='PHPRC';value='C:\\PHP'}; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/defaultDocument/files' -name '.' -value @{value='index.php'}"
+# Enable IIS CGI feature and configure IIS for PHP
+RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && \
+    powershell -Command `
+    "Import-Module WebAdministration; `
+    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:\\PHP\\php-cgi.exe'}; `
+    New-WebHandler -Name 'PHP_via_FastCGI' -Path '*.php' -Verb '*' -Modules 'FastCgiModule' -ScriptProcessor 'C:\\PHP\\php-cgi.exe' -ResourceType 'Either'; `
+    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application[@fullPath=''C:\\PHP\\php-cgi.exe'']/environmentVariables' -name '.' -value @{name='PHP_FCGI_MAX_REQUESTS';value='10000'}; `
+    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application[@fullPath=''C:\\PHP\\php-cgi.exe'']/environmentVariables' -name '.' -value @{name='PHPRC';value='C:\\PHP'}; `
+    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/defaultDocument/files' -name '.' -value @{value='index.php'}; `
+    [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\PHP', [System.EnvironmentVariableTarget]::Machine); `
+    [System.Environment]::SetEnvironmentVariable('PHP', 'C:\\PHP', [System.EnvironmentVariableTarget]::Machine); `
+    Remove-Item -Recurse -Force 'C:\\inetpub\\wwwroot\\*'"
 
 # Optional: Add Starter PHP Page
-RUN powershell -Command "echo '<?php phpinfo(); ?>' > C:\\inetpub\\wwwroot\\index.php"
+RUN powershell.exe -Command "'<?php phpinfo(); ?>' | Out-File C:\inetpub\wwwroot\index.php -Encoding UTF8"
 
 # Expose Port 80
 EXPOSE 80
