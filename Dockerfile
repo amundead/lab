@@ -29,7 +29,7 @@ RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && \
     Remove-Item -Recurse -Force 'C:\\inetpub\\wwwroot\\*'"
 
 # Copy the index.php file to the IIS web root
-COPY index.php C:\inetpub\wwwroot\
+COPY index.php .
 
 # Expose Port 80 for HTTP traffic
 EXPOSE 80
