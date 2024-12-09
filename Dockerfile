@@ -1,35 +1,20 @@
-FROM mcr.microsoft.com/windows/servercore/iis:windowsservercore-ltsc2019
+# Use Node.js base image
+FROM node:lts-alpine
 
-# Optional: Add Starter PHP Page
-WORKDIR /inetpub/wwwroot
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-# Install PHP and VC++ Redistributable
-RUN powershell -Command \
-    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
-    Invoke-WebRequest -Uri 'https://windows.php.net/downloads/releases/php-8.4.1-nts-Win32-vs17-x64.zip' -OutFile 'C:\\php.zip'; \
-    Expand-Archive -Path 'C:\\php.zip' -DestinationPath 'C:\\php'; \
-    Remove-Item -Force 'C:\\php.zip'; \
-    Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile 'C:\\vc_redist.x64.exe'; \
-    Start-Process -FilePath 'C:\\vc_redist.x64.exe' -ArgumentList '/install', '/quiet', '/norestart' -Wait; \
-    Remove-Item -Force 'C:\\vc_redist.x64.exe'; \
-    [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\php', [System.EnvironmentVariableTarget]::Machine); \
-    [System.Environment]::SetEnvironmentVariable('PHP', 'C:\\php', [System.EnvironmentVariableTarget]::Machine)"
+# Copy package.json and package-lock.json from the app folder
+COPY app/package*.json ./
 
-# Enable IIS CGI feature and configure IIS for PHP
-RUN dism.exe /Online /Enable-Feature /FeatureName:IIS-CGI /All && \
-    powershell -NoProfile -Command \
-    "Import-Module WebAdministration; \
-    Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi' -name '.' -value @{fullPath='C:\\PHP\\php-cgi.exe'}; \
-    New-WebHandler -Name 'PHP_via_FastCGI' -Path '*.php' -Verb '*' -Modules 'FastCgiModule' -ScriptProcessor 'C:\\PHP\\php-cgi.exe' -ResourceType 'Either'; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application[@fullPath=''C:\\PHP\\php-cgi.exe'']/environmentVariables' -name '.' -value @{name='PHP_FCGI_MAX_REQUESTS';value='10000'}; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/fastCgi/application[@fullPath=''C:\\PHP\\php-cgi.exe'']/environmentVariables' -name '.' -value @{name='PHPRC';value='C:\\PHP'}; \
-    Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST' -filter 'system.webServer/defaultDocument/files' -name '.' -value @{value='index.php'}; \
-    [System.Environment]::SetEnvironmentVariable('PATH', $env:PATH + ';C:\\PHP', [System.EnvironmentVariableTarget]::Machine); \
-    [System.Environment]::SetEnvironmentVariable('PHP', 'C:\\PHP', [System.EnvironmentVariableTarget]::Machine); \
-    Remove-Item -Recurse -Force 'C:\\inetpub\\wwwroot\\*'"
+# Install dependencies
+RUN npm install
 
-# Copy the index.php file to the IIS web root
-COPY index.php .
+# Copy the rest of the application code from the app folder
+COPY app .
 
-# Expose Port 80 for HTTP traffic
+# Expose port 80
 EXPOSE 80
+
+# Start the Node.js app
+CMD ["node", "app.js"]
