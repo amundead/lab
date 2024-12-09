@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'jenkins-linux-agent-TLS'
+    }
 
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'
