@@ -4,7 +4,7 @@ pipeline {
     environment {
         HARBOR_REGISTRY = 'bakul.mod.gov.my'
         DOCKERFILE_LOCATION = './Dockerfile'
-        PATH_YAML = 'deploy-dev/argo_deploy.yaml'
+        PATH_YAML = 'deploy-argo/argo_deploy.yaml'
         ARGOCD_SERVER = 'kargo.mod.gov.my'
     }
 
