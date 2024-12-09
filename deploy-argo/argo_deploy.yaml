@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: node-helloworld
+  name: node-helloworld-argo
   namespace: dev-app-awam
   labels:
-    app: node-helloworld
+    app: node-helloworld-argo
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: node-helloworld
+      app: node-helloworld-argo
   template:
     metadata:
       labels:
-        app: node-helloworld
+        app: node-helloworld-argo
     spec:
       containers:
-      - name: hello-world
+      - name: hello-world-argo
         image: bakul.mod.gov.my/testing-app/node-helloworld:v1.01
         imagePullPolicy: Always
         ports:
@@ -39,12 +39,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: node-helloworld-loadbalancer
+  name: node-helloworld-argo-loadbalancer
   namespace: dev-app-awam
 spec:
   type: LoadBalancer  # Set the service type to LoadBalancer
   selector:
-    app: node-helloworld
+    app: node-helloworld-argo
   ports:
     - protocol: TCP
       port: 8181       # The port exposed to the external world
