@@ -27,68 +27,45 @@
         }
       }
 
-      .b-example-divider {
-        width: 100%;
-        height: 3rem;
-        background-color: rgba(0, 0, 0, .1);
-        border: solid rgba(0, 0, 0, .15);
-        border-width: 1px 0;
-        box-shadow: inset 0 .5em 1.5em rgba(0, 0, 0, .1), inset 0 .125em .5em rgba(0, 0, 0, .15);
+      /* Default (Auto Theme) */
+      body {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
       }
 
-      .b-example-vr {
-        flex-shrink: 0;
-        width: 1.5rem;
-        height: 100vh;
+      /* Light Theme */
+      body.light-theme {
+        background-color: #ffffff;
+        color: #000000;
       }
 
-      .bi {
-        vertical-align: -.125em;
-        fill: currentColor;
+      /* Dark Theme */
+      body.dark-theme {
+        background-color: #121212;
+        color: #ffffff;
       }
 
-      .nav-scroller {
-        position: relative;
-        z-index: 2;
-        height: 2.75rem;
-        overflow-y: hidden;
+      /* Footer Default Styling */
+      .footer {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+        border-top: 1px solid rgba(0, 0, 0, 0.1); /* Light Border */
       }
 
-      .nav-scroller .nav {
-        display: flex;
-        flex-wrap: nowrap;
-        padding-bottom: 1rem;
-        margin-top: -1px;
-        overflow-x: auto;
-        text-align: center;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
+      /* Light Theme Footer */
+      body.light-theme .footer {
+        background-color: #f8f9fa; /* Light Gray Background */
+        color: #212529; /* Dark Text */
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
       }
 
-      .btn-bd-primary {
-        --bd-violet-bg: #712cf9;
-        --bd-violet-rgb: 112.520718, 44.062154, 249.437846;
-
-        --bs-btn-font-weight: 600;
-        --bs-btn-color: var(--bs-white);
-        --bs-btn-bg: var(--bd-violet-bg);
-        --bs-btn-border-color: var(--bd-violet-bg);
-        --bs-btn-hover-color: var(--bs-white);
-        --bs-btn-hover-bg: #6528e0;
-        --bs-btn-hover-border-color: #6528e0;
-        --bs-btn-focus-shadow-rgb: var(--bd-violet-rgb);
-        --bs-btn-active-color: var(--bs-btn-hover-color);
-        --bs-btn-active-bg: #5a23c8;
-        --bs-btn-active-border-color: #5a23c8;
+      /* Dark Theme Footer */
+      body.dark-theme .footer {
+        background-color: #212529; /* Dark Gray Background */
+        color: #f8f9fa; /* Light Text */
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
       }
 
-      .bd-mode-toggle {
-        z-index: 1500;
-      }
-
-      .bd-mode-toggle .dropdown-menu .active .bi {
-        display: block !important;
-      }
     </style>
 
 
