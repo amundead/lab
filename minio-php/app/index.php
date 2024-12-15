@@ -28,6 +28,24 @@
           font-size: 3.5rem;
         }
       }
+
+      /* Default (Auto Theme) */
+      body {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+      }
+
+      /* Light Theme */
+      body.light-theme {
+        background-color: #ffffff;
+        color: #000000;
+      }
+
+      /* Dark Theme */
+      body.dark-theme {
+        background-color: #121212;
+        color: #ffffff;
+      }
     </style>
 
     
