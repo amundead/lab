@@ -4,7 +4,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./index.php:/var/www/html/public/index.php
+      - app:/var/www/html/public/app
       - ./default.conf:/etc/nginx/conf.d/default.conf
     networks:
       - custom-network
