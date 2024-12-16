@@ -201,10 +201,34 @@ $phpVersion = phpversion();
 <main class="flex-shrink-0">
   <div class="container">
     <h1 class="mt-5">Welcome. Upload file to MINIO</h1>
-    <p class="lead">Pin a footer to the bottom of the viewport in desktop browsers with this custom HTML and CSS. A fixed navbar has been added with <code class="small">padding-top: 60px;</code> on the <code class="small">main &gt; .container</code>.</p>
-    <p>Back to <a href="../examples/sticky-footer/">the default sticky footer</a> minus the navbar.</p>
+    <p class="lead">Please upload any files</p>
+    <div class="input-group mb-3">
+  <label class="input-group-text" for="inputGroupFile01">Upload</label>
+  <input type="file" class="form-control" id="inputGroupFile01" accept=".pdf, .jpeg, .jpg, .docx">
+    </div>
+    <button type="submit" class="btn btn-outline-primary">Upload</button>
     </div>
  
+<!-- Modal -->
+<div class="modal fade" id="invalidFileModal" tabindex="-1" aria-labelledby="invalidFileModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="invalidFileModalLabel">Invalid File</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        The selected file type is not supported. Please upload a PDF, JPEG, or DOCX file.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
   <div class="container"><body>
   <h1 class="mt-5">Container info</h1>
   <p><strong>Hostname:</strong> <?php echo htmlspecialchars($hostname); ?></p>
@@ -219,6 +243,26 @@ $phpVersion = phpversion();
 </footer>
 <script src="../assets/dist/js/bootstrap.bundle.min.js"></script>
 
+<script>
+document.getElementById('inputGroupFile01').addEventListener('change', function (event) {
+  const validExtensions = ['pdf', 'jpeg', 'jpg', 'docx'];
+  const file = event.target.files[0];
+  
+  if (file) {
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    
+    if (!validExtensions.includes(fileExtension)) {
+      // Reset the input
+      event.target.value = '';
+
+      // Trigger the modal
+      const modal = new bootstrap.Modal(document.getElementById('invalidFileModal'));
+      modal.show();
+    }
+  }
+});
+
+  </script>
     </body>
 </html>
 
