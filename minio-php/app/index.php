@@ -1,3 +1,18 @@
+<?php
+// Get the hostname
+$hostname = gethostname();
+
+// Try to get the server's IP address
+$nodeIP = $_SERVER['SERVER_ADDR'] ?? $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+
+// Avoid passing null to htmlspecialchars
+$nodeIP = is_null($nodeIP) ? 'Unknown' : $nodeIP;
+
+// Get the PHP version
+$phpVersion = phpversion();
+?>
+
+
 <!doctype html>
 <html lang="en" class="h-100" data-bs-theme="auto">
   <head><script src="../assets/js/color-modes.js"></script>
@@ -185,12 +200,18 @@
 <!-- Begin page content -->
 <main class="flex-shrink-0">
   <div class="container">
-    <h1 class="mt-5">Sticky footer with fixed navbar</h1>
+    <h1 class="mt-5">Welcome. Hello World PHP - Nginx - Minio</h1>
     <p class="lead">Pin a footer to the bottom of the viewport in desktop browsers with this custom HTML and CSS. A fixed navbar has been added with <code class="small">padding-top: 60px;</code> on the <code class="small">main &gt; .container</code>.</p>
     <p>Back to <a href="../examples/sticky-footer/">the default sticky footer</a> minus the navbar.</p>
-  </div>
+    </div>
+ 
+  <div class="container"><body>
+  <h1 class="mt-5">Container info</h1>
+  <p><strong>Hostname:</strong> <?php echo htmlspecialchars($hostname); ?></p>
+  <p><strong>Node IP:</strong> <?php echo htmlspecialchars($nodeIP); ?></p>
+</body>
+</div>
 </main>
-
 <footer class="footer mt-auto py-3 bg-body-tertiary">
   <div class="container">
     <span class="text-body-secondary"><?php echo 'PHP version: ' . phpversion();?></span>
@@ -200,3 +221,6 @@
 
     </body>
 </html>
+
+
+
