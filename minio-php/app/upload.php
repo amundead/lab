@@ -1,4 +1,61 @@
 <?php
+$minioEndpoint = 'http://your-minio-endpoint:9000'; // Replace with your MinIO URL
+$accessKey = 'your-access-key'; // Replace with your MinIO Access Key
+$secretKey = 'your-secret-key'; // Replace with your MinIO Secret Key
+$bucketName = 'your-bucket-name'; // Replace with your MinIO Bucket Name
+
+$allowedFileTypes = ['application/pdf', 'image/jpeg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+$fileUploadError = false;
+$errorMessage = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
+    $file = $_FILES['file'];
+    $fileName = $file['name'];
+    $fileTmpPath = $file['tmp_name'];
+    $fileType = mime_content_type($fileTmpPath);
+
+    // Validate file type
+    if (!in_array($fileType, $allowedFileTypes)) {
+        $fileUploadError = true;
+        $errorMessage = 'Invalid file type. Only PDF, JPEG, and DOCX files are allowed.';
+    } else {
+        // Prepare headers for authentication
+        $date = gmdate('D, d M Y H:i:s T');
+        $stringToSign = "PUT\n\n\n{$date}\n/{$bucketName}/{$fileName}";
+        $signature = base64_encode(hash_hmac('sha1', $stringToSign, $secretKey, true));
+
+        // Prepare cURL request
+        $url = "{$minioEndpoint}/{$bucketName}/{$fileName}";
+        $headers = [
+            "Date: {$date}",
+            "Authorization: AWS {$accessKey}:{$signature}",
+            "Content-Type: {$fileType}",
+        ];
+
+        $fileContent = file_get_contents($fileTmpPath);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $fileContent);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($httpCode !== 200) {
+            $fileUploadError = true;
+            $errorMessage = 'Error uploading file: ' . $response;
+        }
+
+        curl_close($ch);
+    }
+}
+?>
+
+
+<?php
 // Get the hostname
 $hostname = gethostname();
 
@@ -23,11 +80,7 @@ $phpVersion = phpversion();
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
     <meta name="generator" content="Hugo 0.122.0">
     <title>Sticky Footer Navbar Template · Bootstrap v5.3</title>
-
-    <link rel="canonical" href="https://getbootstrap.com/docs/5.3/examples/sticky-footer-navbar/">
-
-    
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">    <link rel="canonical" href="https://getbootstrap.com/docs/5.3/examples/sticky-footer-navbar/">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3">
 
 <link href="../assets/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -201,13 +254,46 @@ $phpVersion = phpversion();
 <main class="flex-shrink-1">
   <div class="container">
     <h1 class="mt-5">Welcome. Upload files to MINIO</h1>
-    <p class="lead">Please upload PDF, Jpeg or docx files</p>
-    <div class="input-group">
-  <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" accept=".pdf, .jpeg, .jpg, .docx">
-  <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Submit</button>
+    <p class="lead">Please upload PDF, Jpeg, or docx files</p>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      <div class="input-group">
+        <input type="file" class="form-control" name="file" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" accept=".pdf, .jpeg, .jpg, .docx" required>
+        <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Submit</button>
+      </div>
+    </form>
+
+    <?php if ($fileUploadError): ?>
+        <!-- Modal -->
+        <div class="modal fade" id="invalidFileModal1" tabindex="-1" aria-labelledby="invalidFileModalLabel1" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="invalidFileModalLabel1">Invalid File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <?= htmlspecialchars($errorMessage) ?>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>
+          // Show the modal programmatically when there is an error
+          document.addEventListener('DOMContentLoaded', function () {
+            const invalidFileModal1 = new bootstrap.Modal(document.getElementById('invalidFileModal1'));
+            invalidFileModal1.show();
+          });
+        </script>
+    <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$fileUploadError): ?>
+        <div class="alert alert-success mt-3" role="alert">
+          File uploaded successfully!
+        </div>
+    <?php endif; ?>
   </div>
-    </div>
- 
+
 <!-- Modal -->
 <div class="modal fade" id="invalidFileModal" tabindex="-1" aria-labelledby="invalidFileModalLabel" aria-hidden="true">
   <div class="modal-dialog">
