@@ -198,15 +198,14 @@ $phpVersion = phpversion();
 </header>
 
 <!-- Begin page content -->
-<main class="flex-shrink-0">
+<main class="flex-shrink-1">
   <div class="container">
-    <h1 class="mt-5">Welcome. Upload file to MINIO</h1>
-    <p class="lead">Please upload any files</p>
-    <div class="input-group mb-3">
-  <label class="input-group-text" for="inputGroupFile01">Upload</label>
-  <input type="file" class="form-control" id="inputGroupFile01" accept=".pdf, .jpeg, .jpg, .docx">
-    </div>
-    <button type="submit" class="btn btn-outline-primary">Upload</button>
+    <h1 class="mt-5">Welcome. Upload files to MINIO</h1>
+    <p class="lead">Please upload PDF, Jpeg or docx files</p>
+    <div class="input-group">
+  <input type="file" class="form-control" id="inputGroupFile04" aria-describedby="inputGroupFileAddon04" aria-label="Upload" accept=".pdf, .jpeg, .jpg, .docx">
+  <button class="btn btn-outline-secondary" type="submit" id="inputGroupFileAddon04">Submit</button>
+  </div>
     </div>
  
 <!-- Modal -->
@@ -227,8 +226,6 @@ $phpVersion = phpversion();
   </div>
 </div>
 
-
-
   <div class="container"><body>
   <h1 class="mt-5">Container info</h1>
   <p><strong>Hostname:</strong> <?php echo htmlspecialchars($hostname); ?></p>
@@ -244,7 +241,7 @@ $phpVersion = phpversion();
 <script src="../assets/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-document.getElementById('inputGroupFile01').addEventListener('change', function (event) {
+document.getElementById('inputGroupFile04').addEventListener('change', function (event) {
   const validExtensions = ['pdf', 'jpeg', 'jpg', 'docx'];
   const file = event.target.files[0];
   
