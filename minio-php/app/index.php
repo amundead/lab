@@ -193,7 +193,7 @@
 
 <footer class="footer mt-auto py-3 bg-body-tertiary">
   <div class="container">
-    <span class="text-body-secondary"> <h1>PHP version (<?php echo htmlspecialchars($phpVersion); ?>)</h1></span>
+    <span class="text-body-secondary">(<?php echo htmlspecialchars($phpVersion); ?>)</span>
   </div>
 </footer>
 <script src="../assets/dist/js/bootstrap.bundle.min.js"></script>
