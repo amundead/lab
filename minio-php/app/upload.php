@@ -179,10 +179,10 @@ $phpVersion = phpversion();
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav me-auto mb-2 mb-md-0">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="index.php">Home</a>
+            <a class="nav-link active" aria-current="page" href="/index">Home</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="upload.php">Upload</a>
+            <a class="nav-link" href="/upload">Upload</a>
           </li>
           <li class="nav-item">
             <a class="nav-link disabled" aria-disabled="true">Disabled</a>
