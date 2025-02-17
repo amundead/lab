@@ -16,22 +16,23 @@ spec:
         app: plkn-qa
     spec:
       containers:
-      - name: plkn-qa-container
-        image: bakul.mod.gov.my/plkn-qa/plknappserver:v1.0.11@sha256:aeb14d195e886eb8a23651cf6a0bec6532437824458bbb0a78021cd161a980ab
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-      
-      - name: plkn-hangfire-container
-        image: bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 5000
-        env: 
-        - name: ASPNETCORE_ENVIRONMENT
-          value: "QA"
-        - name: ASPNETCORE_URLS
-          value: http://+:5000
+        - name: plkn-qa-container
+          image: bakul.mod.gov.my/plkn-qa/plknappserver:v1.0.11@sha256:aeb14d195e886eb8a23651cf6a0bec6532437824458bbb0a78021cd161a980ab
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+
+        - name: plkn-hangfire-container
+          image: bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "QA"
+            - name: ASPNETCORE_URLS
+              value: "http://+:5000"
+
 #---
 #apiVersion: v1
 #kind: Service
