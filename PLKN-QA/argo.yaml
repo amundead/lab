@@ -90,7 +90,7 @@ spec:
 
     - name: plkn-hangfire-service
       protocol: TCP
-      port: 7072      # External port for plkn-hangfire-container
+      port: 8080      # External port for plkn-hangfire-container
       targetPort: 5000  # Maps to plkn-hangfire-container port inside the Pod
 
 
