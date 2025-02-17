@@ -1,65 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: phplogin
+  name: plkn-qa
+  namespace: dev-app-awam
   labels:
-    app: web
-    pdf: pdf
+    app: plkn-qa
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      octopusexport: OctopusExport
-  replicas: 1
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 25
+      app: plkn-qa
   template:
     metadata:
       labels:
-        app: web
-        pdf: pdf
-        octopusexport: OctopusExport
+        app: plkn-qa
     spec:
-      dnsPolicy: ClusterFirstWithHostNet
-      hostNetwork: true
-      volumes:
-        - name: mydata
-          persistentVolumeClaim:
-            claimName: mydatapvc
       containers:
-        - name: plkn
-          image: >-
-            bakul.mod.gov.my/plkn-qa/plknappserver:v1.0.11@sha256:aeb14d195e886eb8a23651cf6a0bec6532437824458bbb0a78021cd161a980ab
+        - name: plkn-qa-container
+          image: bakul.mod.gov.my/plkn-qa/plknappserver:v1.0.11@sha256:aeb14d195e886eb8a23651cf6a0bec6532437824458bbb0a78021cd161a980ab
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-              protocol: TCP
-        - name: hangfire
-          image: 'bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0'
+
+        - name: plkn-hangfire-container
+          image: bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:
-            - name: ASPNETCORE_URLS
-              value: 'http://+:5000'
             - name: ASPNETCORE_ENVIRONMENT
-              value: QA
-      securityContext:
-        runAsNonRoot: false
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchExpressions:
-                    - key: app
-                      operator: In
-                      values:
-                        - web
-                topologyKey: kubernetes.io/hostname
-
+              value: "QA"
+            - name: ASPNETCORE_URLS
+              value: "http://+:5000"
 
 #---
 #apiVersion: v1
