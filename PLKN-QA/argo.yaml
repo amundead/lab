@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plkn-qa
+  namespace: dev-app-awam
+  labels:
+    app: plkn-qa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plkn-qa
+  template:
+    metadata:
+      labels:
+        app: plkn-qa
+    spec:
+      containers:
+      - name: plkn-qa-container
+        image: bakul.mod.gov.my/plkn-qa/plknappserver:v1.0.11@sha256:aeb14d195e886eb8a23651cf6a0bec6532437824458bbb0a78021cd161a980ab
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+      
+      - name: plkn-hangfire-container
+        image: bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env: 
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "QA"
+        - name: ASPNETCORE_URLS
+          value: http://+:5000
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+  #name: node-helloworld-service
+  #namespace: dev-app-awam
+#spec:
+  #type: ClusterIP  # Set the service type to ClusterIP
+  #selector:
+    #app: node-helloworld
+  #ports:
+    #- protocol: TCP
+      #port: 8181       # The port that will be exposed inside the cluster
+      #targetPort: 80 # The port that the container listens on
+---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: plkn-qa-loadbalancer
+#   namespace: dev-app-awam
+# spec:
+#   type: LoadBalancer  # Set the service type to LoadBalancer
+#   selector:
+#     app: plkn-qa
+#   ports:
+#     - protocol: TCP
+#       port: 7071       # The port exposed to the external world
+#       targetPort: 8080 # The port that the container listens on
+---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: argocd-cm
+# data:
+#   server.websocket.enabled: "true"
+---
+# fix websocket error  by Amir 
+apiVersion: v1
+kind: Service
+metadata:
+  name: plkn-qa-loadbalancer
+  namespace: dev-app-awam
+spec:
+  selector:
+    app: plkn-qa
+  type: LoadBalancer
+  sessionAffinity: ClientIP  # Enables session affinity based on client IP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # Sticky session timeout set to 3 hours
+  ports:
+    - protocol: TCP
+      port: 7072   # External Port for plkn-qa-container
+      targetPort: 8080  # Internal Port for plkn-qa-container
+    - protocol: TCP
+      port: 8080   # External Port for plkn-hangfire-container
+      targetPort: 5000  # Internal Port for plkn-hangfire-container
+
+--- 
+
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+  #name: hello-world-ingress
+  #namespace: dev-app-awam
+  #annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+#spec:
+  #rules:
+    #- host: hello.local.my  # The hostname to be used
+      #http:
+        #paths:
+          #- path: /
+            #pathType: Prefix
+            #backend:
+              #service:
+                #name: hello-world-service  # The name of the service created earlier
+                #port:
+                  #number: 80  # The port exposed by the service
