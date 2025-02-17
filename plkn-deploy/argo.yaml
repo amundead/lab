@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phplogin
+  labels:
+    app: web
+    pdf: pdf
+spec:
+  selector:
+    matchLabels:
+      octopusexport: OctopusExport
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25
+  template:
+    metadata:
+      labels:
+        app: web
+        pdf: pdf
+        octopusexport: OctopusExport
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      volumes:
+        - name: mydata
+          persistentVolumeClaim:
+            claimName: mydatapvc
+      containers:
+        - name: plkn
+          image: >-
+            bakul.mod.gov.my/plkn-qa/plknappserver:v1.0.11@sha256:aeb14d195e886eb8a23651cf6a0bec6532437824458bbb0a78021cd161a980ab
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+        - name: hangfire
+          image: 'bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0'
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: ASPNETCORE_URLS
+              value: 'http://+:5000'
+            - name: ASPNETCORE_ENVIRONMENT
+              value: QA
+      securityContext:
+        runAsNonRoot: false
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - web
+                topologyKey: kubernetes.io/hostname
+
+
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+  #name: node-helloworld-service
+  #namespace: dev-app-awam
+#spec:
+  #type: ClusterIP  # Set the service type to ClusterIP
+  #selector:
+    #app: node-helloworld
+  #ports:
+    #- protocol: TCP
+      #port: 8181       # The port that will be exposed inside the cluster
+      #targetPort: 80 # The port that the container listens on
+---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: plkn-qa-loadbalancer
+#   namespace: dev-app-awam
+# spec:
+#   type: LoadBalancer  # Set the service type to LoadBalancer
+#   selector:
+#     app: plkn-qa
+#   ports:
+#     - protocol: TCP
+#       port: 7071       # The port exposed to the external world
+#       targetPort: 8080 # The port that the container listens on
+---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: argocd-cm
+# data:
+#   server.websocket.enabled: "true"
+---
+# fix websocket error  by Amir 
+apiVersion: v1
+kind: Service
+metadata:
+  name: plkn-qa-loadbalancer
+  namespace: dev-app-awam
+spec:
+  selector:
+    app: plkn-qa
+  type: LoadBalancer
+  sessionAffinity: ClientIP  # Enables session affinity based on client IP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # Sticky session timeout set to 3 hours
+  ports:
+    - name: plkn-qa-service
+      protocol: TCP
+      port: 7072      # External port for plkn-qa-container
+      targetPort: 8080  # Maps to plkn-qa-container port inside the Pod
+
+    - name: plkn-hangfire-service
+      protocol: TCP
+      port: 8080      # External port for plkn-hangfire-container
+      targetPort: 5000  # Maps to plkn-hangfire-container port inside the Pod
+
+
+--- 
+
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+  #name: hello-world-ingress
+  #namespace: dev-app-awam
+  #annotations:
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+#spec:
+  #rules:
+    #- host: hello.local.my  # The hostname to be used
+      #http:
+        #paths:
+          #- path: /
+            #pathType: Prefix
+            #backend:
+              #service:
+                #name: hello-world-service  # The name of the service created earlier
+                #port:
+                  #number: 80  # The port exposed by the service
