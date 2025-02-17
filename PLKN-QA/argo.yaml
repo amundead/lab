@@ -83,12 +83,16 @@ spec:
     clientIP:
       timeoutSeconds: 10800  # Sticky session timeout set to 3 hours
   ports:
-    - protocol: TCP
-      port: 7072   # External Port for plkn-qa-container
-      targetPort: 8080  # Internal Port for plkn-qa-container
-    - protocol: TCP
-      port: 8080   # External Port for plkn-hangfire-container
-      targetPort: 5000  # Internal Port for plkn-hangfire-container
+    - name: plkn-qa-service
+      protocol: TCP
+      port: 7071      # External port for plkn-qa-container
+      targetPort: 8080  # Maps to plkn-qa-container port inside the Pod
+
+    - name: plkn-hangfire-service
+      protocol: TCP
+      port: 7072      # External port for plkn-hangfire-container
+      targetPort: 5000  # Maps to plkn-hangfire-container port inside the Pod
+
 
 --- 
 
