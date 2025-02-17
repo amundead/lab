@@ -85,7 +85,7 @@ spec:
   ports:
     - name: plkn-qa-service
       protocol: TCP
-      port: 7071      # External port for plkn-qa-container
+      port: 7072      # External port for plkn-qa-container
       targetPort: 8080  # Maps to plkn-qa-container port inside the Pod
 
     - name: plkn-hangfire-service
