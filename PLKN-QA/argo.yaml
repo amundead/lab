@@ -23,7 +23,7 @@ spec:
             - containerPort: 8080
 
         - name: plkn-hangfire-container
-          image: bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.0
+          image: bakul.mod.gov.my/plkn-qa/plknhangfire:v1.0.1
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
