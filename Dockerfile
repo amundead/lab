@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY app/package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install -g npm@11.6.2
 
 # Copy the rest of the application code from the app folder
 COPY app .

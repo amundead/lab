@@ -48,7 +48,7 @@ pipeline {
             steps {
                 script {
                     // Use docker.withRegistry for secure login and push to Harbor
-                    docker.withRegistry("https://${HARBOR_REGISTRY}", 'harbor-credentials-amir') {
+                    docker.withRegistry("https://${HARBOR_REGISTRY}", 'bakul-testing-app') {
                         docker.image("${IMAGE_NAME_HARBOR}:${TAG}").push()
                     }
                 }
