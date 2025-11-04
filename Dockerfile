@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY app/package*.json ./
 
 # Install dependencies
-RUN npm install -g npm@11.6.2
+RUN npm install -g npm@11.6.2 && npm install
 
 # Copy the rest of the application code from the app folder
 COPY app .
@@ -18,3 +18,4 @@ EXPOSE 80
 
 # Start the Node.js app
 CMD ["node", "app.js"]
+
