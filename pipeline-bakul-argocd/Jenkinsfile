@@ -36,7 +36,7 @@ pipeline {
                     sh "docker build --no-cache -t ${env.IMAGE_NAME_HARBOR} -f ${DOCKERFILE_LOCATION} ."
 
                     // Push the image to the Harbor registry
-                    withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'bakul-testing-app', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
                         sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
                         sh "docker push ${env.IMAGE_NAME_HARBOR}"
                     }
@@ -53,7 +53,7 @@ pipeline {
                     env.IMAGE_NAME_HARBOR = "${HARBOR_REGISTRY}/${params.BASE_IMAGE_NAME}"
 
                     // Pull the specified image to ensure it's available
-                    withCredentials([usernamePassword(credentialsId: 'harbor-credentials-amir', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: 'bakul-testing-app', passwordVariable: 'HARBOR_PASSWORD', usernameVariable: 'HARBOR_USERNAME')]) {
                         sh 'echo $HARBOR_PASSWORD | docker login $HARBOR_REGISTRY -u $HARBOR_USERNAME --password-stdin'
                         sh "docker pull ${env.IMAGE_NAME_HARBOR}"
                     }
@@ -99,7 +99,7 @@ pipeline {
         stage('Trigger ArgoCD Sync') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'kargo-credentials', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'argocd-amir', usernameVariable: 'ARGOCD_USERNAME', passwordVariable: 'ARGOCD_PASSWORD')]) {
                         def token = sh (
                             script: """curl -s -X POST -k -d '{"username":"${ARGOCD_USERNAME}", "password":"${ARGOCD_PASSWORD}"}' -H 'Content-Type: application/json' https://${ARGOCD_SERVER}/api/v1/session | jq -r .token""",
                             returnStdout: true
