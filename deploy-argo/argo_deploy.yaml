@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: hello-world-argo
-        image: bakul.mod.gov.my/testing-app/myapp:v1.02@sha256:14229eb2c42e4cdb547dc2ef691b63ae025d301cac4b14c615d51a33adff435f
+        image: bakul.mod.gov.my/testing-app/myapp:v1.01@sha256:891c3972bced90c65f29b0a405a22869dc66ca15227ca1cdf536ed0c5a8e9ec9
         imagePullPolicy: Always
         ports:
         - containerPort: 80   # node-hello-world listens on port 80
