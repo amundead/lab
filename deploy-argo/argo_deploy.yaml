@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: node-helloworld-argo
-  namespace: dev-app-awam
+  namespace: dev-app
   labels:
     app: node-helloworld-argo
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: node-helloworld-argo
@@ -40,7 +40,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: node-helloworld-argo-loadbalancer
-  namespace: dev-app-awam
+  namespace: dev-app
 spec:
   type: LoadBalancer  # Set the service type to LoadBalancer
   selector:
